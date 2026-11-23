@@ -784,19 +784,20 @@
         if (!file.type.startsWith('image/') && !imageExtension) { notify('El archivo no parece ser una imagen. Selecciona una fotografía.', 'error'); target.value = ''; return; }
         if (file.size > 8 * 1024 * 1024) { notify('La imagen debe pesar menos de 8 MB.', 'error'); target.value = ''; return; }
         if (!state.profile?.id) throw new Error('No se encontró el perfil activo. Vuelve a seleccionar tu perfil.');
-        let bitmap;
-        try {
-          if ('createImageBitmap' in window) bitmap = await createImageBitmap(file);
-          else throw new Error('Usar decodificador alternativo');
-        } catch (_) {
-          bitmap = await new Promise((resolve, reject) => {
-            const url = URL.createObjectURL(file), img = new Image();
-            img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Tu navegador no puede abrir este formato. Prueba con JPG o PNG.')); };
-            img.src = url;
-          });
-        }
-        const width = bitmap.width || bitmap.naturalWidth, height = bitmap.height || bitmap.naturalHeight;
+        // FileReader + Image funciona de forma más consistente con archivos elegidos desde Android.
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('Android no pudo leer la foto. Intenta elegirla desde Galería.'));
+          reader.readAsDataURL(file);
+        });
+        const bitmap = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('No se pudo abrir esa imagen. Prueba guardarla como JPG o PNG.'));
+          img.src = dataUrl;
+        });
+        const width = bitmap.naturalWidth, height = bitmap.naturalHeight;
         if (!width || !height) throw new Error('No se pudieron leer las dimensiones de la imagen.');
         const scale = Math.min(1, 512 / Math.max(width, height));
         const canvas = document.createElement('canvas');
@@ -804,7 +805,6 @@
         const context = canvas.getContext('2d');
         if (!context) throw new Error('No se pudo procesar la imagen en este navegador.');
         context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-        if (typeof bitmap.close === 'function') bitmap.close();
         const photo = canvas.toDataURL('image/jpeg', 0.78);
         if (!photo || photo === 'data:,') throw new Error('No se pudo convertir la foto. Prueba con otra imagen.');
         const updated = { ...state.profile, photo, updatedAt: new Date().toISOString() };
