@@ -1,5 +1,5 @@
 /* Offline shell. IndexedDB data is intentionally never cached or cleared here. */
-const CACHE_NAME = 'pancho-gym-shell-v7';
+const CACHE_NAME = 'pancho-gym-shell-v8';
 const CORE_ASSETS = [
   './', './index.html', './styles.css', './db.js', './app.js', './manifest.webmanifest',
   './assets/icons/icon.svg', './assets/icons/icon-192.png', './assets/icons/icon-512.png',
