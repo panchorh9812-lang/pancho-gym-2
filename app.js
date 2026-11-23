@@ -196,8 +196,8 @@
   }
   function renderProfile() {
     const p = state.profile;
-    return `${renderCreateProfilePanel()}<div class="page-heading"><div><span class="eyebrow">DATOS PERSONALES</span><h1>Mi perfil</h1><p>Información, objetivos y disponibilidad de ${esc(p.name)}.</p></div><span class="profile-avatar">${esc((p.name || 'P').slice(0, 1).toUpperCase())}</span></div>
-      <form class="panel profile-form" id="profile-form"><div class="form-grid">
+    return `${renderCreateProfilePanel()}<div class="page-heading"><div><span class="eyebrow">DATOS PERSONALES</span><h1>Mi perfil</h1><p>Información, objetivos y disponibilidad de ${esc(p.name)}.</p></div><div class="profile-avatar">${p.photo ? `<img src="${p.photo}" alt="Foto de perfil">` : esc((p.name || 'P').slice(0, 1).toUpperCase())}</div></div>
+      <form class="panel profile-form" id="profile-form"><div class="profile-photo-control"><label for="profile-photo-input">Foto de perfil</label><input id="profile-photo-input" type="file" accept="image/*"><small>Elige una foto de tu teléfono o computadora. Se guardará en este perfil.</small></div><div class="form-grid">
       <label>Nombre<input name="name" required maxlength="48" value="${esc(p.name)}"></label>
       <label>Género<select name="gender">${[["","Selecciona"],["Mujer","Mujer"],["Hombre","Hombre"],["No binario","No binario"],["Prefiero no decirlo","Prefiero no decirlo"]].map(([v,t]) => `<option value="${v}" ${(p.gender || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label><label>Edad (años)<input name="age" type="number" min="10" max="100" value="${esc(p.age)}" placeholder="Ej. 28"></label>
       <label>Peso actual (kg)<input name="weight" type="number" min="20" max="400" step="0.1" value="${esc(p.weight)}" placeholder="Ej. 78.5"></label>
@@ -778,6 +778,24 @@
   document.addEventListener('change', async event => {
     const target = event.target;
     try {
+      if (target.id === 'profile-photo-input' && target.files?.[0]) {
+        const file = target.files[0];
+        if (!file.type.startsWith('image/')) { notify('Selecciona un archivo de imagen.', 'error'); target.value = ''; return; }
+        if (file.size > 8 * 1024 * 1024) { notify('La imagen debe pesar menos de 8 MB.', 'error'); target.value = ''; return; }
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file);
+        });
+        const photo = await new Promise((resolve, reject) => {
+          const img = new Image(); img.onload = () => {
+            const scale = Math.min(1, 512 / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas'); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82));
+          }; img.onerror = reject; img.src = dataUrl;
+        });
+        const updated = { ...state.profile, photo, updatedAt: new Date().toISOString() };
+        await GymDB.put('profiles', updated); state.profile = updated;
+        notify('Foto de perfil actualizada.'); await render(); return;
+      }
       if (target.id === 'profile-switch') {
         if (state.activeSession && state.activeSession.status === 'active' && state.activeSession.profileId === state.profileId) {
           // The active workout remains safely stored under its original profile.
