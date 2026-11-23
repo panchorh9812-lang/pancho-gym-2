@@ -577,8 +577,9 @@
     const ex = state.activeSession?.exercises?.[index];
     if (!ex || ex.cardioRole || state.paused || ex.timerCompleted) return;
     state.activeSession.exercises.forEach((other, otherIndex) => {
-      if (otherIndex !== index && other.timerStartedAt) { other.timerElapsedSeconds = exerciseElapsed(other); other.timerStartedAt = null; }
+      if (otherIndex !== index) { if (other.timerStartedAt) { other.timerElapsedSeconds = exerciseElapsed(other); other.timerStartedAt = null; } other.timerWasRunning = false; }
     });
+    ex.timerWasRunning = false;
     ex.timerStartedAt = new Date().toISOString();
     await GymDB.put('sessions', state.activeSession);
     ensureExerciseTimer();
@@ -588,7 +589,7 @@
     const ex = state.activeSession?.exercises?.[index];
     if (!ex || ex.cardioRole || state.paused) return;
     ex.timerElapsedSeconds = exerciseElapsed(ex);
-    ex.timerStartedAt = null; ex.timerCompleted = true; ex.completedAt = new Date().toISOString();
+    ex.timerStartedAt = null; ex.timerWasRunning = false; ex.timerCompleted = true; ex.completedAt = new Date().toISOString();
     (ex.sets || []).forEach(set => { set.done = true; });
     await GymDB.put('sessions', state.activeSession);
     ensureExerciseTimer();
