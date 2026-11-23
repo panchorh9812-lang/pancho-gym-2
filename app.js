@@ -72,7 +72,7 @@
     profile: null, profiles: [], routines: [], sessions: [], measurements: [], photos: [],
     editRoutine: null, editDayIndex: 0, showProfileCreate: false,
     activeSession: null, paused: false, timerRemaining: 0, timerInterval: null,
-    cardioTimer: { exIndex: null, remaining: 0, running: false }, cardioTimerInterval: null,
+    cardioTimer: { exIndex: null, remaining: 0, running: false }, cardioTimerInterval: null, exerciseTimerInterval: null,
     detailExercise: null, photoCompare: [], photoUrls: [],
     installPrompt: null
   };
@@ -556,10 +556,61 @@
   function formatCountdown(seconds) { const n = Math.max(0, Number(seconds) || 0); return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0'); }
   function renderCardioCountdown(ex, index) { const duration = ex.cardioRole === 'cardio-start' ? 1200 : 600; const t = state.cardioTimer; const selected = t.exIndex === index; const remaining = selected ? t.remaining : duration; return '<section class="timer-panel cardio-countdown"><div><span class="eyebrow">' + (ex.cardioRole === 'cardio-start' ? 'CUENTA REGRESIVA · CARDIO INICIAL' : 'CUENTA REGRESIVA · CARDIO FINAL') + '</span><strong data-cardio-clock="' + index + '">' + formatCountdown(remaining) + '</strong><small>' + (selected && remaining === 0 ? '¡Tiempo completado!' : selected && !t.running ? 'Temporizador pausado' : selected && t.running ? 'Temporizador en marcha' : 'Temporizador listo') + '</small></div><div class="timer-actions"><button class="button button-primary" type="button" data-action="cardio-timer-toggle" data-index="' + index + '" ' + (state.paused || (selected && t.running) ? 'disabled' : '') + '>' + (selected && remaining < duration && remaining > 0 ? 'Reanudar' : 'Iniciar') + '</button><button class="button button-quiet" type="button" data-action="cardio-timer-reset" data-index="' + index + '" ' + (state.paused ? 'disabled' : '') + '>Reiniciar</button></div></section>'; }
   function stopCardioTimer() { clearInterval(state.cardioTimerInterval); state.cardioTimerInterval = null; state.cardioTimer.running = false; }
-  function startCardioTimer(index, reset = false) { const ex = state.activeSession && state.activeSession.exercises[index]; if (!ex || !ex.cardioRole || state.paused) return; const duration = ex.cardioRole === 'cardio-start' ? 1200 : 600; if (reset || state.cardioTimer.exIndex !== index) state.cardioTimer = { exIndex: index, remaining: duration, running: false }; if (state.cardioTimer.remaining <= 0) state.cardioTimer.remaining = duration; stopCardioTimer(); state.cardioTimer.running = true; const paint = () => { const clock = document.querySelector('[data-cardio-clock="' + index + '"]'); if (clock) { clock.textContent = formatCountdown(state.cardioTimer.remaining); const small = clock.parentElement.querySelector('small'); if (small) small.textContent = state.cardioTimer.remaining === 0 ? '¡Tiempo completado!' : state.cardioTimer.running ? 'Temporizador en marcha' : 'Temporizador pausado'; } }; paint(); state.cardioTimerInterval = setInterval(() => { if (state.paused || !state.cardioTimer.running) return; state.cardioTimer.remaining = Math.max(0, state.cardioTimer.remaining - 1); paint(); if (!state.cardioTimer.remaining) { stopCardioTimer(); paint(); const button = document.querySelector('[data-action="cardio-timer-toggle"][data-index="' + index + '"]'); if (button) { button.disabled = false; button.textContent = 'Iniciar'; } notify(ex.cardioRole === 'cardio-start' ? '¡Cardio inicial completado! Continúa con tus ejercicios.' : '¡Cardio final completado! Excelente trabajo.'); } }, 1000); }
+  function exerciseElapsed(ex) { return Math.max(0, Number(ex.timerElapsedSeconds) || 0) + (ex.timerStartedAt ? Math.floor((Date.now() - new Date(ex.timerStartedAt).getTime()) / 1000) : 0); }
+  function paintExerciseClocks() {
+    if (!state.activeSession) return;
+    state.activeSession.exercises.forEach((ex, index) => {
+      if (ex.cardioRole) return;
+      const clock = document.querySelector('[data-exercise-clock="' + index + '"]');
+      if (clock) clock.textContent = formatCountdown(exerciseElapsed(ex));
+      const status = document.querySelector('[data-exercise-status="' + index + '"]');
+      if (status) status.textContent = ex.timerCompleted ? 'Ejercicio terminado' : ex.timerStartedAt ? 'Cronómetro en marcha' : ex.timerElapsedSeconds ? 'Tiempo acumulado' : 'Listo para comenzar';
+    });
+  }
+  function ensureExerciseTimer() {
+    clearInterval(state.exerciseTimerInterval);
+    if (!state.activeSession || state.paused || !state.activeSession.exercises.some(ex => !ex.cardioRole && ex.timerStartedAt)) return;
+    paintExerciseClocks();
+    state.exerciseTimerInterval = setInterval(paintExerciseClocks, 1000);
+  }
+  async function startExerciseTimer(index) {
+    const ex = state.activeSession?.exercises?.[index];
+    if (!ex || ex.cardioRole || state.paused || ex.timerCompleted) return;
+    state.activeSession.exercises.forEach((other, otherIndex) => {
+      if (otherIndex !== index && other.timerStartedAt) { other.timerElapsedSeconds = exerciseElapsed(other); other.timerStartedAt = null; }
+    });
+    ex.timerStartedAt = new Date().toISOString();
+    await GymDB.put('sessions', state.activeSession);
+    ensureExerciseTimer();
+    await render();
+  }
+  async function completeExerciseTimer(index) {
+    const ex = state.activeSession?.exercises?.[index];
+    if (!ex || ex.cardioRole || state.paused) return;
+    ex.timerElapsedSeconds = exerciseElapsed(ex);
+    ex.timerStartedAt = null; ex.timerCompleted = true; ex.completedAt = new Date().toISOString();
+    (ex.sets || []).forEach(set => { set.done = true; });
+    await GymDB.put('sessions', state.activeSession);
+    ensureExerciseTimer();
+    await render();
+    notify('Ejercicio terminado. Tiempo: ' + formatCountdown(ex.timerElapsedSeconds) + '.');
+  }
+  function pauseExerciseTimer() {
+    if (!state.activeSession) return;
+    state.activeSession.exercises.forEach(ex => { if (!ex.cardioRole && ex.timerStartedAt) { ex.timerElapsedSeconds = exerciseElapsed(ex); ex.timerStartedAt = null; } });
+    clearInterval(state.exerciseTimerInterval); state.exerciseTimerInterval = null;
+  }
+  function resumeExerciseTimer() {
+    if (!state.activeSession) return;
+    const ex = state.activeSession.exercises.find(item => !item.cardioRole && item.timerElapsedSeconds > 0 && !item.timerCompleted);
+    if (ex) ex.timerStartedAt = new Date().toISOString();
+    ensureExerciseTimer();
+  }
+  function startCardioTimer(index, reset = false) { const ex = state.activeSession && state.activeSession.exercises[index]; if (!ex || !ex.cardioRole || state.paused) return; const duration = ex.cardioRole === 'cardio-start' ? 1200 : 600; if (reset || state.cardioTimer.exIndex !== index) state.cardioTimer = { exIndex: index, remaining: duration, running: false }; if (state.cardioTimer.remaining <= 0) state.cardioTimer.remaining = duration; stopCardioTimer(); state.cardioTimer.running = true; const paint = () => { const clock = document.querySelector('[data-cardio-clock="' + index + '"]'); if (clock) { clock.textContent = formatCountdown(state.cardioTimer.remaining); const small = clock.parentElement.querySelector('small'); if (small) small.textContent = state.cardioTimer.remaining === 0 ? '¡Tiempo completado!' : state.cardioTimer.running ? 'Temporizador en marcha' : 'Temporizador pausado'; } }; paint(); state.cardioTimerInterval = setInterval(() => { if (state.paused || !state.cardioTimer.running) return; state.cardioTimer.remaining = Math.max(0, state.cardioTimer.remaining - 1); paint(); if (!state.cardioTimer.remaining) { stopCardioTimer(); paint(); ex.sets.forEach(set => { set.done = true; }); ex.timerCompleted = true; ex.timerElapsedSeconds = duration; ex.completedAt = new Date().toISOString(); GymDB.put('sessions', state.activeSession).then(() => render()).catch(error => notify(error.message || 'No se pudo guardar el cardio.', 'error')); const button = document.querySelector('[data-action="cardio-timer-toggle"][data-index="' + index + '"]'); if (button) { button.disabled = true; button.textContent = 'Completado'; } notify(ex.cardioRole === 'cardio-start' ? '¡Cardio inicial completado y marcado como realizado!' : '¡Cardio final completado y marcado como realizado!'); } }, 1000); }
   function renderTraining() {
     const session = state.activeSession && state.activeSession.profileId === state.profileId && state.activeSession.status === 'active' ? state.activeSession : null;
     if (session) {
+      ensureExerciseTimer();
       const { pct, done, total } = workoutProgress(session);
       const pausedBanner = state.paused ? '<div class="paused-banner">Entrenamiento pausado. Pulsa Reanudar cuando estés listo.</div>' : '';
       const cardioStartIndex = session.exercises.findIndex(ex => ex.cardioRole === 'cardio-start');
@@ -568,6 +619,7 @@
         const info = EXERCISES[ex.exerciseId] || EXERCISES.squat;
         if (ex.cardioRole) return '';
         return `<article class="panel workout-exercise"><div class="workout-exercise-head"><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><div><span class="eyebrow">${ex.cardioRole === "cardio-start" ? "CARDIO INICIAL · 20 MIN" : ex.cardioRole === "cardio-end" ? "CARDIO FINAL · 10 MIN" : `EJERCICIO ${exIndex + 1}`}</span><h3>${esc(ex.name || info.name)}</h3><small>${esc(info.muscle)}</small></div><button class="mini-edit" type="button" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" aria-label="Ver técnica de ${esc(info.name)}">ⓘ</button></div>
+          <div class="exercise-stopwatch"><div><span class="eyebrow">TIEMPO DEL EJERCICIO</span><strong data-exercise-clock="${exIndex}">${formatCountdown(exerciseElapsed(ex))}</strong><small data-exercise-status="${exIndex}">${ex.timerCompleted ? 'Ejercicio terminado' : ex.timerStartedAt ? 'Cronómetro en marcha' : ex.timerElapsedSeconds ? 'Tiempo acumulado' : 'Listo para comenzar'}</small></div><div class="timer-actions">${ex.timerCompleted ? '<button class="button button-quiet" type="button" disabled>Terminado ✓</button>' : ex.timerStartedAt ? '<button class="button button-primary" type="button" data-action="complete-exercise" data-index="' + exIndex + '" ' + (state.paused ? 'disabled' : '') + '>Terminar ejercicio</button>' : '<button class="button button-primary" type="button" data-action="start-exercise" data-index="' + exIndex + '" ' + (state.paused ? 'disabled' : '') + '>' + (ex.timerElapsedSeconds ? 'Continuar' : 'Iniciar ejercicio') + '</button>'}</div></div>
           <div class="set-table"><div class="set-table-head"><span>Serie</span><span>Reps / min</span><span>Peso (kg)</span><span>Hecha</span></div>${ex.sets.map((set, setIndex) => `<div class="set-row ${set.done ? 'set-done' : ''}"><b>${setIndex + 1}</b><input type="number" min="1" max="300" value="${Number(set.reps) || 10}" aria-label="Repeticiones" data-session-field="reps" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><input type="number" min="0" max="500" step="0.5" value="${Number(set.weight) || 0}" aria-label="Peso utilizado en kg" data-session-field="weight" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><label class="set-check" aria-label="Marcar serie ${setIndex + 1}"><input type="checkbox" data-session-field="done" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${set.done ? 'checked' : ''} ${state.paused ? 'disabled' : ''}><span></span></label></div>`).join('')}</div>
           ${!ex.cardioRole ? `<div class="session-set-actions"><button type="button" class="button button-outline" data-action="add-session-set" data-index="${exIndex}" ${state.paused || ex.sets.length >= 50 ? "disabled" : ""}>＋ Agregar serie</button><button type="button" class="button button-quiet" data-action="remove-session-set" data-index="${exIndex}" ${state.paused || ex.sets.length <= 1 ? "disabled" : ""}>− Quitar última</button></div>` : ""}<div class="workout-exercise-foot"><span>Descanso sugerido: ${Number(ex.rest) || 60} s</span><label>Sustituir <select data-replace-exercise="${exIndex}" ${(state.paused || ex.cardioRole) ? 'disabled' : ''}>${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label></div></article>`;
       }).join('');
@@ -788,13 +840,15 @@
       case 'rest-start': startRest(Number(element.dataset.seconds)); break;
       case 'rest-stop': startRest(0); break;
       case 'cardio-timer-toggle': startCardioTimer(Number(element.dataset.index)); break;
+      case 'start-exercise': await startExerciseTimer(Number(element.dataset.index)); break;
+      case 'complete-exercise': await completeExerciseTimer(Number(element.dataset.index)); break;
       case 'cardio-timer-reset': { const idx = Number(element.dataset.index), ex = state.activeSession?.exercises?.[idx]; stopCardioTimer(); state.cardioTimer = { exIndex: idx, remaining: ex?.cardioRole === 'cardio-start' ? 1200 : 600, running: false }; await render(); break; }
       case 'add-session-set': { const ex = state.activeSession?.exercises?.[Number(element.dataset.index)]; if (ex && !ex.cardioRole && !state.paused && ex.sets.length < 50) { const last = ex.sets[ex.sets.length - 1] || { reps: 10, weight: 0 }; ex.sets.push({ reps: last.reps, weight: last.weight, done: false }); await GymDB.put('sessions', state.activeSession); await render(); } break; }
       case 'remove-session-set': { const ex = state.activeSession?.exercises?.[Number(element.dataset.index)]; if (ex && !ex.cardioRole && !state.paused && ex.sets.length > 1) { ex.sets.pop(); await GymDB.put('sessions', state.activeSession); await render(); } break; }
-      case 'pause-workout': state.paused = true; clearInterval(state.timerInterval); stopCardioTimer(); await render(); break;
-      case 'resume-workout': state.paused = false; await render(); break;
-      case 'cancel-workout': if (confirm('¿Cancelar esta sesión? No aparecerá como entrenamiento completado en tu historial.')) { clearInterval(state.timerInterval); stopCardioTimer(); const s = { ...state.activeSession, status: 'cancelled', endedAt: new Date().toISOString() }; await GymDB.put('sessions', s); state.activeSession = null; state.paused = false; state.timerRemaining = 0; notify('Sesión cancelada.'); await render(); } break;
-      case 'finish-workout': if (confirm('¿Has terminado tu entrenamiento? Se guardará en el historial.')) { clearInterval(state.timerInterval); stopCardioTimer(); const started = new Date(state.activeSession.startedAt).getTime(); const s = { ...state.activeSession, status: 'completed', endedAt: new Date().toISOString(), durationSeconds: Math.max(0, Math.round((Date.now() - started) / 1000)) }; await GymDB.put('sessions', s); state.activeSession = null; state.paused = false; state.timerRemaining = 0; notify('¡Sesión completada! Tu progreso se ha guardado.'); await render(); } break;
+      case 'pause-workout': state.paused = true; clearInterval(state.timerInterval); stopCardioTimer(); pauseExerciseTimer(); await GymDB.put('sessions', state.activeSession); await render(); break;
+      case 'resume-workout': state.paused = false; resumeExerciseTimer(); await GymDB.put('sessions', state.activeSession); await render(); break;
+      case 'cancel-workout': if (confirm('¿Cancelar esta sesión? No aparecerá como entrenamiento completado en tu historial.')) { clearInterval(state.timerInterval); clearInterval(state.exerciseTimerInterval); state.exerciseTimerInterval = null; stopCardioTimer(); const s = { ...state.activeSession, status: 'cancelled', endedAt: new Date().toISOString() }; await GymDB.put('sessions', s); state.activeSession = null; state.paused = false; state.timerRemaining = 0; notify('Sesión cancelada.'); await render(); } break;
+      case 'finish-workout': if (confirm('¿Has terminado tu entrenamiento? Se guardará en el historial.')) { clearInterval(state.timerInterval); clearInterval(state.exerciseTimerInterval); state.exerciseTimerInterval = null; state.activeSession.exercises.forEach(ex => { if (!ex.cardioRole && ex.timerStartedAt) { ex.timerElapsedSeconds = exerciseElapsed(ex); ex.timerStartedAt = null; } }); stopCardioTimer(); const started = new Date(state.activeSession.startedAt).getTime(); const s = { ...state.activeSession, status: 'completed', endedAt: new Date().toISOString(), durationSeconds: Math.max(0, Math.round((Date.now() - started) / 1000)) }; await GymDB.put('sessions', s); state.activeSession = null; state.paused = false; state.timerRemaining = 0; notify('¡Sesión completada! Tu progreso se ha guardado.'); await render(); } break;
       case 'jump-measurement': $('#measurement-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
       case 'delete-measurement': if (confirm('¿Eliminar este registro de medidas?')) { await GymDB.remove('measurements', id); notify('Registro eliminado.'); await render(); } break;
       case 'delete-photo': if (confirm('¿Eliminar esta fotografía de forma permanente?')) { await GymDB.remove('photos', id); state.photoCompare = state.photoCompare.filter(x => x !== id); notify('Fotografía eliminada.'); await render(); } break;
