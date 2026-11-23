@@ -196,7 +196,7 @@
   }
   function renderProfile() {
     const p = state.profile;
-    return `${renderCreateProfilePanel()}<div class="page-heading"><div><span class="eyebrow">DATOS PERSONALES</span><h1>Mi perfil</h1><p>Información, objetivos y disponibilidad de ${esc(p.name)}.</p></div><label class="profile-avatar profile-avatar-edit" for="profile-photo-input" title="Cambiar foto de perfil" aria-label="Cambiar foto de perfil">${p.photo ? `<img src="${p.photo}" alt="Foto de perfil">` : esc((p.name || 'P').slice(0, 1).toUpperCase())}<span class="profile-avatar-camera" aria-hidden="true">📷</span><input id="profile-photo-input" class="profile-photo-input" type="file" accept="image/*"></label></div>
+    return `${renderCreateProfilePanel()}<div class="page-heading"><div><span class="eyebrow">DATOS PERSONALES</span><h1>Mi perfil</h1><p>Información, objetivos y disponibilidad de ${esc(p.name)}.</p></div><label class="profile-avatar profile-avatar-edit" for="profile-photo-input" title="Cambiar foto de perfil" aria-label="Cambiar foto de perfil">${p.photo ? `<img src="${p.photo}" alt="Foto de perfil">` : esc((p.name || 'P').slice(0, 1).toUpperCase())}<span class="profile-avatar-camera" aria-hidden="true">📷</span><input id="profile-photo-input" class="profile-photo-input" type="file" accept="image/*,.heic,.heif,.tif,.tiff,.bmp,.avif,.svg"></label></div>
       <form class="panel profile-form" id="profile-form"><div class="form-grid">
       <label>Nombre<input name="name" required maxlength="48" value="${esc(p.name)}"></label>
       <label>Género<select name="gender">${[["","Selecciona"],["Mujer","Mujer"],["Hombre","Hombre"],["No binario","No binario"],["Prefiero no decirlo","Prefiero no decirlo"]].map(([v,t]) => `<option value="${v}" ${(p.gender || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label><label>Edad (años)<input name="age" type="number" min="10" max="100" value="${esc(p.age)}" placeholder="Ej. 28"></label>
@@ -780,7 +780,8 @@
     try {
       if (target.id === 'profile-photo-input' && target.files?.[0]) {
         const file = target.files[0];
-        if (!file.type.startsWith('image/')) { notify('Selecciona un archivo de imagen.', 'error'); target.value = ''; return; }
+        const imageExtension = /\.(jpe?g|png|gif|webp|bmp|svg|avif|heic|heif|tif|tiff|ico)$/i.test(file.name || '');
+        if (!file.type.startsWith('image/') && !imageExtension) { notify('El archivo no parece ser una imagen. Prueba con otro formato.', 'error'); target.value = ''; return; }
         if (file.size > 8 * 1024 * 1024) { notify('La imagen debe pesar menos de 8 MB.', 'error'); target.value = ''; return; }
         const dataUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file);
@@ -790,7 +791,7 @@
             const scale = Math.min(1, 512 / Math.max(img.width, img.height));
             const canvas = document.createElement('canvas'); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
             canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82));
-          }; img.onerror = reject; img.src = dataUrl;
+          }; img.onerror = () => reject(new Error('Este navegador no puede abrir este formato de imagen. Prueba guardarla como JPG o PNG.')); img.src = dataUrl;
         });
         if (!state.profile?.id) throw new Error('No se encontró el perfil activo. Vuelve a seleccionar tu perfil e inténtalo de nuevo.');
         const updated = { ...state.profile, photo, updatedAt: new Date().toISOString() };
