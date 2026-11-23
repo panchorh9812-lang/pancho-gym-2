@@ -781,27 +781,40 @@
       if (target.id === 'profile-photo-input' && target.files?.[0]) {
         const file = target.files[0];
         const imageExtension = /\.(jpe?g|png|gif|webp|bmp|svg|avif|heic|heif|tif|tiff|ico)$/i.test(file.name || '');
-        if (!file.type.startsWith('image/') && !imageExtension) { notify('El archivo no parece ser una imagen. Prueba con otro formato.', 'error'); target.value = ''; return; }
+        if (!file.type.startsWith('image/') && !imageExtension) { notify('El archivo no parece ser una imagen. Selecciona una fotografía.', 'error'); target.value = ''; return; }
         if (file.size > 8 * 1024 * 1024) { notify('La imagen debe pesar menos de 8 MB.', 'error'); target.value = ''; return; }
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file);
-        });
-        const photo = await new Promise((resolve, reject) => {
-          const img = new Image(); img.onload = () => {
-            const scale = Math.min(1, 512 / Math.max(img.width, img.height));
-            const canvas = document.createElement('canvas'); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
-            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82));
-          }; img.onerror = () => reject(new Error('Este navegador no puede abrir este formato de imagen. Prueba guardarla como JPG o PNG.')); img.src = dataUrl;
-        });
-        if (!state.profile?.id) throw new Error('No se encontró el perfil activo. Vuelve a seleccionar tu perfil e inténtalo de nuevo.');
+        if (!state.profile?.id) throw new Error('No se encontró el perfil activo. Vuelve a seleccionar tu perfil.');
+        let bitmap;
+        try {
+          if ('createImageBitmap' in window) bitmap = await createImageBitmap(file);
+          else throw new Error('Usar decodificador alternativo');
+        } catch (_) {
+          bitmap = await new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file), img = new Image();
+            img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Tu navegador no puede abrir este formato. Prueba con JPG o PNG.')); };
+            img.src = url;
+          });
+        }
+        const width = bitmap.width || bitmap.naturalWidth, height = bitmap.height || bitmap.naturalHeight;
+        if (!width || !height) throw new Error('No se pudieron leer las dimensiones de la imagen.');
+        const scale = Math.min(1, 512 / Math.max(width, height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(width * scale)); canvas.height = Math.max(1, Math.round(height * scale));
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('No se pudo procesar la imagen en este navegador.');
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        if (typeof bitmap.close === 'function') bitmap.close();
+        const photo = canvas.toDataURL('image/jpeg', 0.78);
+        if (!photo || photo === 'data:,') throw new Error('No se pudo convertir la foto. Prueba con otra imagen.');
         const updated = { ...state.profile, photo, updatedAt: new Date().toISOString() };
         await GymDB.put('profiles', updated);
         const saved = await GymDB.get('profiles', updated.id);
-        if (!saved?.photo || saved.photo !== photo) throw new Error('El navegador no confirmó el guardado de la foto. Revisa el espacio disponible y vuelve a intentarlo.');
+        if (!saved?.photo) throw new Error('La foto no quedó guardada. Revisa el espacio disponible del navegador.');
         state.profile = saved;
         state.profiles = state.profiles.map(profile => profile.id === saved.id ? saved : profile);
         target.value = '';
-        notify('Foto guardada en este dispositivo.');
+        notify('¡Foto de perfil guardada!');
         await render(); return;
       }
       if (target.id === 'profile-switch') {
