@@ -100,6 +100,33 @@
   async function seed() {
     const profiles = await getAll('profiles');
     if (profiles.length) {
+      // Completa las rutinas existentes: mínimo seis ejercicios por día, sin duplicar movimientos.
+      const allRoutines = await getAll('routines');
+      const exercisePool = [
+        ['shoulder-press', 'row', 'biceps-curl', 'glute-bridge'],
+        ['squat', 'lat-pulldown', 'push-up', 'plank'],
+        ['jumping-jacks', 'treadmill', 'mountain-climber', 'child-pose']
+      ];
+      for (const routine of allRoutines) {
+        let routineChanged = false;
+        (routine.days || []).forEach((day, dayIndex) => {
+          if (!Array.isArray(day.exercises)) day.exercises = [];
+          const candidates = exercisePool[dayIndex % exercisePool.length];
+          for (const exerciseId of candidates) {
+            if (day.exercises.length >= 6) break;
+            if (!day.exercises.some(ex => ex.exerciseId === exerciseId)) {
+              day.exercises.push({ exerciseId, sets: 3, reps: 10, rest: 60, weight: 0 });
+              routineChanged = true;
+            }
+          }
+          // Si el día ya tiene seis o más ejercicios, se conserva tal cual.
+        });
+        if (routineChanged) {
+          routine.updatedAt = new Date().toISOString();
+          await put('routines', routine);
+        }
+      }
+
       // Actualiza la rutina inicial ya guardada en dispositivos existentes sin borrar su historial.
       const starter = await get('routines', 'routine-me-starter');
       if (starter?.days?.length) {
