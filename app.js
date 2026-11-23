@@ -197,7 +197,7 @@
     return `${renderCreateProfilePanel()}<div class="page-heading"><div><span class="eyebrow">DATOS PERSONALES</span><h1>Mi perfil</h1><p>Información, objetivos y disponibilidad de ${esc(p.name)}.</p></div><span class="profile-avatar">${esc((p.name || 'P').slice(0, 1).toUpperCase())}</span></div>
       <form class="panel profile-form" id="profile-form"><div class="form-grid">
       <label>Nombre<input name="name" required maxlength="48" value="${esc(p.name)}"></label>
-      <label>Edad (años)<input name="age" type="number" min="10" max="100" value="${esc(p.age)}" placeholder="Ej. 28"></label>
+      <label>Género<select name="gender">${[["","Selecciona"],["Mujer","Mujer"],["Hombre","Hombre"],["No binario","No binario"],["Prefiero no decirlo","Prefiero no decirlo"]].map(([v,t]) => `<option value="${v}" ${(p.gender || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label><label>Edad (años)<input name="age" type="number" min="10" max="100" value="${esc(p.age)}" placeholder="Ej. 28"></label>
       <label>Peso actual (kg)<input name="weight" type="number" min="20" max="400" step="0.1" value="${esc(p.weight)}" placeholder="Ej. 78.5"></label>
       <label>Estatura (cm)<input name="height" type="number" min="100" max="250" step="0.1" value="${esc(p.height)}" placeholder="Ej. 175"></label>
       <label>Objetivo<select name="goal">${['Perder grasa y conservar músculo', 'Mejorar condición física', 'Ganar fuerza', 'Ganar masa muscular', 'Mejorar movilidad', 'Mantenerme activo'].map(x => `<option ${p.goal === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
@@ -211,7 +211,7 @@
   }
   function exerciseRow(ex, index) {
     const details = EXERCISES[ex.exerciseId] || EXERCISES.squat;
-    return `<div class="routine-exercise-row" data-ex-index="${index}"><img src="assets/exercises/${details.image}" alt="Ilustración de ${esc(details.name)}"><div class="exercise-fields"><div class="exercise-select-line"><select data-field="exerciseId" aria-label="Ejercicio">${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select><button type="button" class="mini-edit" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" title="Ver técnica">ⓘ</button><button type="button" class="mini-edit remove-exercise" data-action="remove-exercise" data-index="${index}" title="Quitar ejercicio">×</button></div><div class="exercise-number-fields"><label>Series<input type="number" min="1" max="10" data-field="sets" value="${Number(ex.sets) || 3}"></label><label>Reps / seg<input type="number" min="1" max="300" data-field="reps" value="${Number(ex.reps) || 10}"></label><label>Descanso (s)<input type="number" min="0" max="600" data-field="rest" value="${Number(ex.rest) || 60}"></label><label>Peso (kg)<input type="number" min="0" max="500" step="0.5" data-field="weight" value="${Number(ex.weight) || 0}"></label></div><small>${esc(details.muscle)} · ${esc(details.category)}</small></div></div>`;
+    return `<div class="routine-exercise-row" data-ex-index="${index}" data-cardio-role="${esc(ex.cardioRole || "")}"><img src="assets/exercises/${details.image}" alt="Ilustración de ${esc(details.name)}"><div class="exercise-fields"><div class="exercise-select-line"><select data-field="exerciseId" aria-label="Ejercicio" ${ex.cardioRole ? "disabled" : ""}>${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select><button type="button" class="mini-edit" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" title="Ver técnica">ⓘ</button>${ex.cardioRole ? `<span class="chip">Cardio obligatorio</span>` : `<button type="button" class="mini-edit remove-exercise" data-action="remove-exercise" data-index="${index}" title="Quitar ejercicio">×</button>`}</div><div class="exercise-number-fields"><label>Series<input type="number" min="1" max="10" data-field="sets" value="${Number(ex.sets) || 3}"></label><label>Reps / seg<input type="number" min="1" max="300" data-field="reps" value="${Number(ex.reps) || 10}"></label><label>Descanso (s)<input type="number" min="0" max="600" data-field="rest" value="${Number(ex.rest) || 60}"></label><label>Peso (kg)<input type="number" min="0" max="500" step="0.5" data-field="weight" value="${Number(ex.weight) || 0}"></label></div><small>${esc(details.muscle)} · ${esc(details.category)}</small></div></div>`;
   }
   function renderRoutineEditor() {
     const routine = state.editRoutine;
@@ -224,10 +224,27 @@
       <button type="button" class="button button-outline add-exercise-button" data-action="add-exercise">＋ Añadir ejercicio</button>
       <div class="form-actions"><button class="button button-primary" type="submit">Guardar rutina</button><button class="button button-quiet" type="button" data-action="close-routine-editor">Cancelar</button>${routine.id ? `<button class="text-button danger-text" type="button" data-action="delete-routine" data-id="${esc(routine.id)}">Eliminar rutina</button>` : ''}</div></form>`;
   }
+  function buildMuscleSplitRoutine() {
+    const now = new Date().toISOString();
+    const make = (id, reps, sets = 3) => ({ exerciseId: id, sets, reps, rest: 60, weight: 0 });
+    const cardio = (minutes, cardioRole) => ({ ...make('treadmill', minutes, 1), cardioRole });
+    const days = [
+      { id: uid('day'), name: 'Día 1 · Pierna completa', exercises: [
+        cardio(20, 'cardio-start'), make('squat', 10), make('leg-press', 12), make('romanian-deadlift', 10), make('leg-extension', 12), make('leg-curl', 12), make('calf-raise', 15), cardio(10, 'cardio-end')
+      ]},
+      { id: uid('day'), name: 'Día 2 · Pecho y brazo', exercises: [
+        cardio(20, 'cardio-start'), make('bench-press', 10), make('incline-press', 10), make('chest-fly', 12), make('biceps-curl', 12), make('hammer-curl', 12), make('triceps-pushdown', 12), make('triceps-extension', 12), cardio(10, 'cardio-end')
+      ]},
+      { id: uid('day'), name: 'Día 3 · Espalda y hombro', exercises: [
+        cardio(20, 'cardio-start'), make('lat-pulldown', 10), make('seated-row', 12), make('face-pull', 15), make('shoulder-press', 10), make('row', 12), make('lateral-raise', 12), cardio(10, 'cardio-end')
+      ]}
+    ];
+    return { id: uid('routine'), profileId: state.profileId, name: 'Rutina dividida · 3 grupos musculares', goal: 'Fuerza e hipertrofia', location: 'Gimnasio', createdAt: now, updatedAt: now, cardioRequired: true, days };
+  }
   function renderRoutines() {
     if (state.editRoutine) return renderRoutineEditor();
-    return `<div class="page-heading"><div><span class="eyebrow">PLANIFICACIÓN</span><h1>Mis rutinas</h1><p>Planes adaptables a tu objetivo y al equipo que tienes disponible.</p></div><div class="heading-actions"><button class="button button-outline" data-action="generate-routine">✦ Generar recomendada</button><button class="button button-primary" data-action="new-routine">＋ Crear rutina</button></div></div>
-      <div class="routine-guidance"><span>✦</span><div><strong>Entrena con intención</strong><p>Combina fuerza, cardio, abdomen, movilidad y recuperación. Ajusta las cargas a tu nivel y prioriza la técnica.</p></div></div>
+    return `<div class="page-heading"><div><span class="eyebrow">PLANIFICACIÓN</span><h1>Mis rutinas</h1><p>Planes adaptables a tu objetivo y al equipo que tienes disponible.</p></div><div class="heading-actions"><button class="button button-outline" data-action="generate-routine">✦ Generar recomendada</button><button class="button button-outline" data-action="create-muscle-split">＋ Rutina por músculos</button><button class="button button-primary" data-action="new-routine">＋ Crear rutina</button></div></div>
+      <div class="routine-guidance"><span>✦</span><div><strong>Rutina dividida por músculos</strong><p>Incluye pierna completa, pecho y brazo, y espalda y hombro. Cada sesión lleva 20 minutos de cardio al inicio y 10 minutos al final.</p></div></div>
       ${state.routines.length ? `<section class="routine-grid">${state.routines.map(routineCard).join('')}</section>` : `<section class="empty-state"><div class="empty-symbol">▤</div><h3>Tu primer plan empieza aquí</h3><p>Crea una rutina para este perfil. Los planes no se comparten con otros perfiles.</p><div class="empty-actions"><button class="button button-primary" data-action="generate-routine">✦ Generar rutina recomendada</button><button class="button button-outline" data-action="new-routine">Crear desde cero</button></div></section>`}
       <section class="panel exercise-library"><div class="panel-heading"><div><span class="eyebrow">BIBLIOTECA</span><h3>Ejercicios disponibles</h3></div><span class="chip">${Object.keys(EXERCISES).length} ejercicios</span></div><div class="library-grid">${Object.entries(EXERCISES).map(([id, ex]) => `<button class="library-item" data-action="exercise-detail" data-id="${id}"><img src="assets/exercises/${ex.image}" alt="Ilustración de ${esc(ex.name)}"><span><strong>${esc(ex.name)}</strong><small>${esc(ex.muscle)}</small></span><b>ⓘ</b></button>`).join('')}</div></section>`;
   }
@@ -267,9 +284,9 @@
       const pausedBanner = state.paused ? '<div class="paused-banner">Entrenamiento pausado. Pulsa Reanudar cuando estés listo.</div>' : '';
       const exercises = session.exercises.map((ex, exIndex) => {
         const info = EXERCISES[ex.exerciseId] || EXERCISES.squat;
-        return `<article class="panel workout-exercise"><div class="workout-exercise-head"><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><div><span class="eyebrow">EJERCICIO ${exIndex + 1}</span><h3>${esc(ex.name || info.name)}</h3><small>${esc(info.muscle)}</small></div><button class="mini-edit" type="button" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" aria-label="Ver técnica de ${esc(info.name)}">ⓘ</button></div>
-          <div class="set-table"><div class="set-table-head"><span>Serie</span><span>Repeticiones</span><span>Peso (kg)</span><span>Hecha</span></div>${ex.sets.map((set, setIndex) => `<div class="set-row ${set.done ? 'set-done' : ''}"><b>${setIndex + 1}</b><input type="number" min="1" max="300" value="${Number(set.reps) || 10}" aria-label="Repeticiones" data-session-field="reps" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><input type="number" min="0" max="500" step="0.5" value="${Number(set.weight) || 0}" aria-label="Peso utilizado en kg" data-session-field="weight" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><label class="set-check" aria-label="Marcar serie ${setIndex + 1}"><input type="checkbox" data-session-field="done" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${set.done ? 'checked' : ''} ${state.paused ? 'disabled' : ''}><span></span></label></div>`).join('')}</div>
-          <div class="workout-exercise-foot"><span>Descanso sugerido: ${Number(ex.rest) || 60} s</span><label>Sustituir <select data-replace-exercise="${exIndex}" ${state.paused ? 'disabled' : ''}>${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label></div></article>`;
+        return `<article class="panel workout-exercise"><div class="workout-exercise-head"><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><div><span class="eyebrow">${ex.cardioRole === "cardio-start" ? "CARDIO INICIAL · 20 MIN" : ex.cardioRole === "cardio-end" ? "CARDIO FINAL · 10 MIN" : `EJERCICIO ${exIndex + 1}`}</span><h3>${esc(ex.name || info.name)}</h3><small>${esc(info.muscle)}</small></div><button class="mini-edit" type="button" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" aria-label="Ver técnica de ${esc(info.name)}">ⓘ</button></div>
+          <div class="set-table"><div class="set-table-head"><span>Serie</span><span>Reps / min</span><span>Peso (kg)</span><span>Hecha</span></div>${ex.sets.map((set, setIndex) => `<div class="set-row ${set.done ? 'set-done' : ''}"><b>${setIndex + 1}</b><input type="number" min="1" max="300" value="${Number(set.reps) || 10}" aria-label="Repeticiones" data-session-field="reps" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><input type="number" min="0" max="500" step="0.5" value="${Number(set.weight) || 0}" aria-label="Peso utilizado en kg" data-session-field="weight" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><label class="set-check" aria-label="Marcar serie ${setIndex + 1}"><input type="checkbox" data-session-field="done" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${set.done ? 'checked' : ''} ${state.paused ? 'disabled' : ''}><span></span></label></div>`).join('')}</div>
+          <div class="workout-exercise-foot"><span>Descanso sugerido: ${Number(ex.rest) || 60} s</span><label>Sustituir <select data-replace-exercise="${exIndex}" ${(state.paused || ex.cardioRole) ? 'disabled' : ''}>${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label></div></article>`;
       }).join('');
       return `<div class="page-heading"><div><span class="eyebrow">SESIÓN EN CURSO</span><h1>${esc(session.routineName)}</h1><p>${esc(session.dayName)} · ${fmtDate(session.startedAt)}</p></div><span class="live-chip">● ${state.paused ? 'EN PAUSA' : 'EN VIVO'}</span></div>
         <section class="panel workout-summary"><div><span class="eyebrow">AVANCE DE LA SESIÓN</span><strong>${pct}%</strong><p>${done} de ${total} series completadas</p></div><div class="progress-ring" style="--progress:${pct * 3.6}deg"><span>${pct}%</span></div><div class="progress-track"><span style="width:${pct}%"></span></div></section>${pausedBanner}
@@ -390,7 +407,7 @@
       day.name = String(fd.get('dayName') || day.name).trim();
       day.exercises = $$('.routine-exercise-row', form).map(row => {
         const val = field => row.querySelector(`[data-field="${field}"]`)?.value;
-        return { exerciseId: val('exerciseId') || 'squat', sets: Math.max(1, Math.min(10, Number(val('sets')) || 3)), reps: Math.max(1, Number(val('reps')) || 10), rest: Math.max(0, Number(val('rest')) || 0), weight: Math.max(0, Number(val('weight')) || 0) };
+        return { exerciseId: val('exerciseId') || 'squat', ...(row.dataset.cardioRole ? { cardioRole: row.dataset.cardioRole } : {}), sets: Math.max(1, Math.min(10, Number(val('sets')) || 3)), reps: Math.max(1, Number(val('reps')) || 10), rest: Math.max(0, Number(val('rest')) || 0), weight: Math.max(0, Number(val('weight')) || 0) };
       });
     }
   }
@@ -465,6 +482,7 @@
       case 'new-profile': state.showProfileCreate = true; state.view = 'perfil'; await render(); break;
       case 'close-profile-create': state.showProfileCreate = false; await render(); break;
       case 'edit-profile': state.view = 'perfil'; await render(); break;
+      case 'create-muscle-split': { const routine = buildMuscleSplitRoutine(); await GymDB.put('routines', routine); state.selectedRoutineId = routine.id; notify('Rutina dividida creada con cardio obligatorio al inicio y al final de cada día.'); await render(); break; }
       case 'generate-routine': { const recommended = buildRecommendedRoutine(state.profile); await GymDB.put('routines', recommended); state.selectedRoutineId = recommended.id; notify(`Rutina recomendada creada para ${state.profile.name}. Ajusta las cargas a tu nivel.`); await render(); break; }
       case 'new-routine': state.editRoutine = { id: null, profileId: state.profileId, name: 'Mi nueva rutina', goal: state.profile.goal, location: 'Gimnasio', createdAt: new Date().toISOString(), days: [{ id: uid('day'), name: 'Día 1 · Cuerpo completo', exercises: [{ exerciseId: 'squat', sets: 3, reps: 10, rest: 60, weight: 0 }] }] }; state.editDayIndex = 0; await render(); break;
       case 'edit-routine': state.editRoutine = structuredClone(state.routines.find(r => r.id === id)); state.editDayIndex = 0; await render(); break;
@@ -563,12 +581,12 @@
     try {
       if (form.id === 'create-profile-form') {
         const name = new FormData(form).get('name')?.trim(); if (!name) return;
-        const profile = { id: uid('profile'), name, age: '', weight: '', height: '', goal: 'Perder grasa y conservar músculo', experience: 'Principiante', availability: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        const profile = { id: uid('profile'), name, age: '', weight: '', height: '', goal: 'Perder grasa y conservar músculo', experience: 'Principiante', gender: '', availability: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
         await GymDB.put('profiles', profile); state.profileId = profile.id; state.showProfileCreate = false; state.view = 'perfil'; notify('Perfil creado. Sus datos están separados de los demás.'); await render();
       }
       if (form.id === 'profile-form') {
         const fd = new FormData(form), previousWeight = Number(state.profile.weight) || 0;
-        const updated = { ...state.profile, name: fd.get('name').trim(), age: fd.get('age') ? Number(fd.get('age')) : '', weight: fd.get('weight') ? Number(fd.get('weight')) : '', height: fd.get('height') ? Number(fd.get('height')) : '', goal: fd.get('goal'), experience: fd.get('experience'), availability: fd.getAll('availability'), updatedAt: new Date().toISOString() };
+        const updated = { ...state.profile, name: fd.get('name').trim(), age: fd.get('age') ? Number(fd.get('age')) : '', weight: fd.get('weight') ? Number(fd.get('weight')) : '', height: fd.get('height') ? Number(fd.get('height')) : '', goal: fd.get('goal'), experience: fd.get('experience'), gender: fd.get('gender') || '', availability: fd.getAll('availability'), updatedAt: new Date().toISOString() };
         await GymDB.put('profiles', updated);
         if (updated.weight && updated.weight !== previousWeight) await GymDB.put('measurements', { id: uid('measure'), profileId: state.profileId, date: today(), weight: updated.weight, source: 'profile' });
         notify('Perfil actualizado correctamente.'); await render();
