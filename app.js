@@ -88,18 +88,19 @@
     const daysCount = Math.min(3, Math.max(1, availability.length));
     const mobilityGoal = /movilidad|recuperaci/i.test(goal);
     const strengthGoal = /fuerza|masa muscular|hipertrofia/i.test(goal);
+    // Seis ejercicios por sesión, equilibrados según el objetivo seleccionado.
     const plans = mobilityGoal ? [
-      [['cat-cow', 10], ['hip-flexor', 30], ['child-pose', 30]],
-      [['glute-bridge', 12], ['cat-cow', 10], ['child-pose', 30]],
-      [['hip-flexor', 30], ['child-pose', 30], ['treadmill', 10]]
+      [['cat-cow', 10], ['hip-flexor', 30], ['child-pose', 30], ['glute-bridge', 12], ['treadmill', 10], ['plank', 20]],
+      [['glute-bridge', 12], ['cat-cow', 10], ['child-pose', 30], ['hip-flexor', 30], ['treadmill', 10], ['mountain-climber', 15]],
+      [['hip-flexor', 30], ['child-pose', 30], ['treadmill', 10], ['cat-cow', 10], ['glute-bridge', 12], ['plank', 20]]
     ] : strengthGoal ? [
-      [['squat', 8], ['push-up', 10], ['row', 10], ['plank', 30]],
-      [['deadlift', 8], ['lunge', 10], ['glute-bridge', 12], ['lat-pulldown', 10]],
-      [['shoulder-press', 8], ['row', 10], ['biceps-curl', 12], ['cat-cow', 8]]
+      [['squat', 8], ['push-up', 10], ['row', 10], ['plank', 30], ['shoulder-press', 8], ['biceps-curl', 12]],
+      [['deadlift', 8], ['lunge', 10], ['glute-bridge', 12], ['lat-pulldown', 10], ['squat', 10], ['mountain-climber', 20]],
+      [['shoulder-press', 8], ['row', 10], ['biceps-curl', 12], ['push-up', 10], ['lat-pulldown', 10], ['cat-cow', 8]]
     ] : [
-      [['squat', 10], ['push-up', 10], ['lat-pulldown', 12], ['plank', 30]],
-      [['deadlift', 8], ['lunge', 10], ['glute-bridge', 12], ['mountain-climber', 20]],
-      [['shoulder-press', 10], ['row', 12], ['jumping-jacks', 30], ['treadmill', 10]]
+      [['squat', 10], ['push-up', 10], ['lat-pulldown', 12], ['plank', 30], ['shoulder-press', 10], ['treadmill', 10]],
+      [['deadlift', 8], ['lunge', 10], ['glute-bridge', 12], ['mountain-climber', 20], ['squat', 10], ['jumping-jacks', 30]],
+      [['shoulder-press', 10], ['row', 12], ['jumping-jacks', 30], ['treadmill', 10], ['biceps-curl', 12], ['plank', 30]]
     ];
     const labels = mobilityGoal ? ['Movilidad general', 'Cadera y estabilidad', 'Recuperación activa'] : ['Cuerpo completo', 'Pierna y core', 'Tren superior y cardio'];
     const days = Array.from({ length: daysCount }, (_, i) => ({
