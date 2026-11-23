@@ -675,7 +675,21 @@
       const count = completed.filter(s => { const d = new Date(s.endedAt || s.startedAt); return d.toDateString() === start.toDateString(); }).length;
       return `<div class="bar-column"><b>${count || ''}</b><div class="bar-track"><i style="height:${Math.max(3, count * 35)}%"></i></div><small>${day.slice(0,2)}</small></div>`;
     }).join('');
-    const history = completed.map(s => `<div class="history-row"><span class="history-check">✓</span><div><strong>${esc(s.routineName || 'Entrenamiento')}</strong><small>${fmtDate(s.endedAt || s.startedAt)} · ${esc(s.dayName || 'Sesión')}</small></div><span>${Math.max(1, Math.round((s.durationSeconds || 0) / 60))} min</span></div>`).join('') || '<div class="empty-inline"><span>◷</span><div><strong>Aún no hay entrenamientos</strong><p>Las sesiones completadas aparecerán aquí.</p></div></div>';
+    const history = [...completed].sort((a, b) => new Date(b.endedAt || b.startedAt) - new Date(a.endedAt || a.startedAt)).map(s => {
+      const exerciseDetails = (s.exercises || []).map((ex, index) => {
+        const info = EXERCISES[ex.exerciseId];
+        const name = ex.name || info?.name || 'Ejercicio';
+        if (ex.cardioRole) {
+          const minutes = Number(ex.reps) || (ex.cardioRole === 'cardio-start' ? 20 : 10);
+          const done = Boolean(ex.timerCompleted || (ex.sets || []).length && ex.sets.every(set => set.done));
+          return `<div class="history-exercise"><div><strong>${esc(ex.cardioRole === 'cardio-start' ? 'Cardio inicial' : 'Cardio final')} · ${esc(name)}</strong><small>${minutes} min programados · ${done ? 'Realizado ✓' : 'No completado'}</small></div></div>`;
+        }
+        const sets = (ex.sets || []).map((set, i) => `<span class="history-set">${i + 1}: ${Number(set.reps) || 0} reps · ${Number(set.weight) || 0} kg ${set.done ? '✓' : ''}</span>`).join('');
+        const elapsed = Number(ex.timerElapsedSeconds) || 0;
+        return `<div class="history-exercise"><div><strong>${index}. ${esc(name)}</strong><small>${ex.sets?.length || 0} series · ${elapsed ? 'Tiempo: ' + formatCountdown(elapsed) : 'Tiempo no registrado'}</small></div><div class="history-sets">${sets || '<span class="history-set">Sin series registradas</span>'}</div></div>`;
+      }).join('');
+      return `<article class="history-entry"><div class="history-row"><span class="history-check">✓</span><div><strong>${esc(s.routineName || 'Entrenamiento')}</strong><small>${fmtDate(s.endedAt || s.startedAt)} · ${esc(s.dayName || 'Sesión')}</small></div><span>${Math.max(1, Math.round((s.durationSeconds || 0) / 60))} min</span></div><details class="history-details"><summary>Ver ejercicios realizados (${(s.exercises || []).length})</summary><div class="history-exercise-list">${exerciseDetails || '<p class="muted small-copy">Esta sesión no contiene ejercicios guardados.</p>'}</div></details></article>`;
+    }).join('') || '<div class="empty-inline"><span>◷</span><div><strong>Aún no hay entrenamientos</strong><p>Las sesiones completadas aparecerán aquí.</p></div></div>';
     const measurementsList = [...measurements].reverse().map(m => `<div class="measurement-row"><strong>${fmtDate(m.date)}</strong><span>${[['weight','Peso','kg'],['waist','Cintura','cm'],['chest','Pecho','cm'],['hip','Cadera','cm'],['arm','Brazo','cm'],['thigh','Muslo','cm']].filter(([key]) => m[key] !== undefined && m[key] !== '').map(([key,label,unit]) => `${label}: ${m[key]} ${unit}`).join(' · ')}</span><button class="mini-edit" data-action="delete-measurement" data-id="${esc(m.id)}" aria-label="Eliminar medida">×</button></div>`).join('');
     const loads = completed.flatMap(s => s.exercises.flatMap(ex => (ex.sets || []).map(set => ({ name: ex.name || EXERCISES[ex.exerciseId]?.name || 'Ejercicio', weight: Number(set.weight) || 0, date: s.endedAt || s.startedAt })))).filter(x => x.weight > 0).sort((a,b) => b.weight - a.weight).slice(0,8);
     return `<div class="page-heading"><div><span class="eyebrow">DATOS Y CONSTANCIA</span><h1>Tu progreso</h1><p>Una visión de tus medidas, entrenamientos y cargas registradas.</p></div><button class="button button-outline" data-action="jump-measurement">＋ Registrar medidas</button></div>
