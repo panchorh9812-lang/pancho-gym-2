@@ -243,18 +243,43 @@
     ];
     return { id: uid('routine'), profileId: state.profileId, name: 'Rutina dividida · 3 grupos musculares', goal: 'Fuerza e hipertrofia', location: 'Gimnasio', createdAt: now, updatedAt: now, cardioRequired: true, days };
   }
+
+  function muscleGroup(exercise) {
+    if (exercise.category === 'Cardio') return 'Cardio';
+    if (exercise.category === 'Movilidad' || exercise.category === 'Recuperación') return 'Movilidad y recuperación';
+    const muscle = String(exercise.muscle || '').toLowerCase();
+    if (muscle.includes('pecho')) return 'Pecho';
+    if (muscle.includes('espalda') || muscle.includes('dorsal') || muscle.includes('cadena posterior')) return 'Espalda';
+    if (muscle.includes('hombro')) return 'Hombros';
+    if (muscle.includes('bíceps') || muscle.includes('biceps')) return 'Bíceps';
+    if (muscle.includes('tríceps') || muscle.includes('triceps')) return 'Tríceps';
+    if (['pierna','glúte','cuádr','isqui','pantorrilla','aductor','femoral'].some(term => muscle.includes(term))) return 'Piernas y glúteos';
+    if (['abdomen','core','oblicuo'].some(term => muscle.includes(term))) return 'Abdomen y core';
+    return 'Otros músculos';
+  }
+  function renderExerciseLibrary() {
+    const groups = {};
+    Object.entries(EXERCISES).forEach(([id, ex]) => { const group = muscleGroup(ex); (groups[group] ||= []).push([id, ex]); });
+    const order = ['Pecho','Espalda','Hombros','Bíceps','Tríceps','Piernas y glúteos','Abdomen y core','Otros músculos','Movilidad y recuperación','Cardio'];
+    return order.filter(group => groups[group]?.length).map(group => '<section class="exercise-library-group"><div class="library-group-heading"><h4>' + group + '</h4><span>' + groups[group].length + ' ejercicios</span></div><div class="library-grid">' + groups[group].map(([id, ex]) => '<button class="library-item" data-action="exercise-detail" data-id="' + id + '"><img src="assets/exercises/' + ex.image + '" alt="Ilustración de ' + esc(ex.name) + '"><span><strong>' + esc(ex.name) + '</strong><small>' + esc(ex.muscle) + '</small></span><b>ⓘ</b></button>').join('') + '</div></section>').join('');
+  }
+
   function renderRoutines() {
     if (state.editRoutine) return renderRoutineEditor();
     return `<div class="page-heading"><div><span class="eyebrow">PLANIFICACIÓN</span><h1>Mis rutinas</h1><p>Planes adaptables a tu objetivo y al equipo que tienes disponible.</p></div><div class="heading-actions"><button class="button button-outline" data-action="generate-routine">✦ Generar recomendada</button><button class="button button-outline" data-action="create-muscle-split">＋ Rutina por músculos</button><button class="button button-primary" data-action="new-routine">＋ Crear rutina</button></div></div>
       <div class="routine-guidance"><span>✦</span><div><strong>Rutina dividida por músculos</strong><p>Incluye pierna completa, pecho y brazo, y espalda y hombro. Cada sesión lleva 20 minutos de cardio al inicio y 10 minutos al final.</p></div></div>
       ${state.routines.length ? `<section class="routine-grid">${state.routines.map(routineCard).join('')}</section>` : `<section class="empty-state"><div class="empty-symbol">▤</div><h3>Tu primer plan empieza aquí</h3><p>Crea una rutina para este perfil. Los planes no se comparten con otros perfiles.</p><div class="empty-actions"><button class="button button-primary" data-action="generate-routine">✦ Generar rutina recomendada</button><button class="button button-outline" data-action="new-routine">Crear desde cero</button></div></section>`}
-      <section class="panel exercise-library"><div class="panel-heading"><div><span class="eyebrow">BIBLIOTECA</span><h3>Ejercicios disponibles</h3></div><span class="chip">${Object.keys(EXERCISES).length} ejercicios</span></div><div class="library-grid">${Object.entries(EXERCISES).map(([id, ex]) => `<button class="library-item" data-action="exercise-detail" data-id="${id}"><img src="assets/exercises/${ex.image}" alt="Ilustración de ${esc(ex.name)}"><span><strong>${esc(ex.name)}</strong><small>${esc(ex.muscle)}</small></span><b>ⓘ</b></button>`).join('')}</div></section>`;
+      <section class="panel exercise-library"><div class="panel-heading"><div><span class="eyebrow">BIBLIOTECA</span><h3>Ejercicios disponibles</h3></div><span class="chip">${Object.keys(EXERCISES).length} ejercicios</span></div><div class="library-grid">${renderExerciseLibrary()}</div></section>`;
   }
   function newSession(routine) {
     const dayIndex = Math.max(0, Number($('#training-day')?.value || 0));
     const day = routine.days[dayIndex] || routine.days[0];
     if (!day || !day.exercises?.length) return notify('Añade al menos un ejercicio a este día antes de entrenar.', 'error'), null;
-    const exercises = day.exercises.map(ex => {
+    const cardioStart = day.exercises.find(ex => ex.cardioRole === 'cardio-start');
+    const cardioEnd = day.exercises.find(ex => ex.cardioRole === 'cardio-end');
+    const sourceExercises = day.exercises.filter(ex => !ex.cardioRole);
+    const cardioItem = (role, minutes) => ({ exerciseId: 'treadmill', cardioRole: role, sets: 1, reps: minutes, rest: 0, weight: 0 });
+    const exercises = [cardioStart || cardioItem('cardio-start', 20), ...sourceExercises, cardioEnd || cardioItem('cardio-end', 10)].map(ex => {
       const info = EXERCISES[ex.exerciseId] || EXERCISES.squat;
       return {
         exerciseId: ex.exerciseId, name: info.name, muscle: info.muscle, ...(ex.cardioRole ? { cardioRole: ex.cardioRole } : {}),
@@ -269,7 +294,7 @@
     };
   }
   function workoutProgress(session) {
-    const sets = (session?.exercises || []).flatMap(ex => ex.sets || []);
+    const sets = (session?.exercises || []).filter(ex => !ex.cardioRole).flatMap(ex => ex.sets || []);
     const total = sets.length;
     const done = sets.filter(set => set.done).length;
     return { total, done, pct: total ? Math.round(done / total * 100) : 0 };
@@ -288,16 +313,20 @@
     if (session) {
       const { pct, done, total } = workoutProgress(session);
       const pausedBanner = state.paused ? '<div class="paused-banner">Entrenamiento pausado. Pulsa Reanudar cuando estés listo.</div>' : '';
+      const cardioStartIndex = session.exercises.findIndex(ex => ex.cardioRole === 'cardio-start');
+      const cardioEndIndex = session.exercises.findIndex(ex => ex.cardioRole === 'cardio-end');
       const exercises = session.exercises.map((ex, exIndex) => {
         const info = EXERCISES[ex.exerciseId] || EXERCISES.squat;
+        if (ex.cardioRole) return '';
         return `<article class="panel workout-exercise"><div class="workout-exercise-head"><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><div><span class="eyebrow">${ex.cardioRole === "cardio-start" ? "CARDIO INICIAL · 20 MIN" : ex.cardioRole === "cardio-end" ? "CARDIO FINAL · 10 MIN" : `EJERCICIO ${exIndex + 1}`}</span><h3>${esc(ex.name || info.name)}</h3><small>${esc(info.muscle)}</small></div><button class="mini-edit" type="button" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" aria-label="Ver técnica de ${esc(info.name)}">ⓘ</button></div>
-          ${ex.cardioRole ? renderCardioCountdown(ex, exIndex) : ''}<div class="set-table"><div class="set-table-head"><span>Serie</span><span>Reps / min</span><span>Peso (kg)</span><span>Hecha</span></div>${ex.sets.map((set, setIndex) => `<div class="set-row ${set.done ? 'set-done' : ''}"><b>${setIndex + 1}</b><input type="number" min="1" max="300" value="${Number(set.reps) || 10}" aria-label="Repeticiones" data-session-field="reps" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><input type="number" min="0" max="500" step="0.5" value="${Number(set.weight) || 0}" aria-label="Peso utilizado en kg" data-session-field="weight" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><label class="set-check" aria-label="Marcar serie ${setIndex + 1}"><input type="checkbox" data-session-field="done" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${set.done ? 'checked' : ''} ${state.paused ? 'disabled' : ''}><span></span></label></div>`).join('')}</div>
+          <div class="set-table"><div class="set-table-head"><span>Serie</span><span>Reps / min</span><span>Peso (kg)</span><span>Hecha</span></div>${ex.sets.map((set, setIndex) => `<div class="set-row ${set.done ? 'set-done' : ''}"><b>${setIndex + 1}</b><input type="number" min="1" max="300" value="${Number(set.reps) || 10}" aria-label="Repeticiones" data-session-field="reps" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><input type="number" min="0" max="500" step="0.5" value="${Number(set.weight) || 0}" aria-label="Peso utilizado en kg" data-session-field="weight" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><label class="set-check" aria-label="Marcar serie ${setIndex + 1}"><input type="checkbox" data-session-field="done" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${set.done ? 'checked' : ''} ${state.paused ? 'disabled' : ''}><span></span></label></div>`).join('')}</div>
           ${!ex.cardioRole ? `<div class="session-set-actions"><button type="button" class="button button-outline" data-action="add-session-set" data-index="${exIndex}" ${state.paused || ex.sets.length >= 50 ? "disabled" : ""}>＋ Agregar serie</button><button type="button" class="button button-quiet" data-action="remove-session-set" data-index="${exIndex}" ${state.paused || ex.sets.length <= 1 ? "disabled" : ""}>− Quitar última</button></div>` : ""}<div class="workout-exercise-foot"><span>Descanso sugerido: ${Number(ex.rest) || 60} s</span><label>Sustituir <select data-replace-exercise="${exIndex}" ${(state.paused || ex.cardioRole) ? 'disabled' : ''}>${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label></div></article>`;
       }).join('');
       return `<div class="page-heading"><div><span class="eyebrow">SESIÓN EN CURSO</span><h1>${esc(session.routineName)}</h1><p>${esc(session.dayName)} · ${fmtDate(session.startedAt)}</p></div><span class="live-chip">● ${state.paused ? 'EN PAUSA' : 'EN VIVO'}</span></div>
         <section class="panel workout-summary"><div><span class="eyebrow">AVANCE DE LA SESIÓN</span><strong>${pct}%</strong><p>${done} de ${total} series completadas</p></div><div class="progress-ring" style="--progress:${pct * 3.6}deg"><span>${pct}%</span></div><div class="progress-track"><span style="width:${pct}%"></span></div></section>${pausedBanner}
-        <section class="panel timer-panel"><div><span class="eyebrow">DESCANSO ENTRE SERIES</span><strong id="rest-timer">${String(Math.floor(state.timerRemaining / 60)).padStart(2, '0')}:${String(state.timerRemaining % 60).padStart(2, '0')}</strong><small>Temporizador local</small></div><div class="timer-actions"><button class="button button-outline" data-action="rest-start" data-seconds="30">＋ 30 s</button><button class="button button-outline" data-action="rest-start" data-seconds="60">＋ 60 s</button><button class="button button-quiet" data-action="rest-stop">Parar</button></div></section>
+        ${cardioStartIndex >= 0 ? renderCardioCountdown(session.exercises[cardioStartIndex], cardioStartIndex) : ''}
         <section class="workout-exercises">${exercises}</section>
+         ${cardioEndIndex >= 0 ? renderCardioCountdown(session.exercises[cardioEndIndex], cardioEndIndex) : ''}
         <div class="sticky-workout-actions">${state.paused ? '<button class="button button-primary" data-action="resume-workout">▶ Reanudar</button>' : '<button class="button button-outline" data-action="pause-workout">Ⅱ Pausar</button>'}<button class="button button-primary" data-action="finish-workout">Finalizar sesión</button><button class="button button-danger" data-action="cancel-workout">Cancelar</button></div>`;
     }
     if (!state.routines.length) return `<div class="page-heading"><div><span class="eyebrow">ENTRENAMIENTO</span><h1>Tu próxima sesión</h1><p>Primero crea o genera una rutina para este perfil.</p></div></div><section class="empty-state"><div class="empty-symbol">◉</div><h3>Sin rutinas todavía</h3><p>Los planes son independientes para cada perfil.</p><div class="empty-actions"><button class="button button-primary" data-action="generate-routine">Generar rutina recomendada</button><button class="button button-outline" data-view="rutinas">Ver rutinas</button></div></section>`;
