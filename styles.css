@@ -13,3 +13,15 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .heading-actions,.empty-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 @media(max-width:720px){.page-heading .heading-actions{max-width:52%;justify-content:flex-end}.heading-actions .button,.empty-actions .button{font-size:9px;padding:0 10px;min-height:37px}.empty-actions{justify-content:center}}
+
+
+/* Exercise library grouped by muscle and dedicated cardio timers */
+.exercise-library-group{margin-top:20px;padding-top:15px;border-top:1px solid rgba(255,255,255,.07)}
+.exercise-library-group:first-of-type{margin-top:8px}
+.library-group-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 11px}
+.library-group-heading h4{margin:0;font:750 13px Manrope,sans-serif;color:var(--lime)}
+.library-group-heading span{font-size:9px;color:var(--muted)}
+.cardio-countdown{border-color:rgba(169,239,56,.28);background:linear-gradient(110deg,rgba(169,239,56,.075),var(--surface) 55%)}
+.cardio-countdown strong{font-size:clamp(30px,5vw,38px);letter-spacing:2px}
+.cardio-countdown .eyebrow{color:var(--lime)}
+@media(max-width:700px){.exercise-library-group .library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cardio-countdown{align-items:flex-start;flex-direction:column}}
