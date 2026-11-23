@@ -33,6 +33,7 @@
     'hammer-curl': { name: 'Curl martillo', muscle: 'Bíceps y antebrazo', category: 'Fuerza', image: 'biceps-curl.svg', instructions: 'Sujeta las mancuernas con las palmas enfrentadas.', start: 'De pie, codos junto al cuerpo.', execution: 'Flexiona los codos sin girar las muñecas y baja con control.', mistakes: 'Usar impulso o mover los hombros.' },
     'preacher-curl': { name: 'Curl en banco Scott', muscle: 'Bíceps', category: 'Fuerza', image: 'biceps-curl.svg', instructions: 'Apoya la parte posterior de los brazos en el banco Scott.', start: 'Agarre cómodo y codos apoyados.', execution: 'Flexiona los codos y baja sin bloquearlos bruscamente.', mistakes: 'Despegar los brazos del apoyo o usar demasiado peso.' },
     'seated-row': { name: 'Remo sentado en polea', muscle: 'Espalda media', category: 'Fuerza', image: 'row.svg', instructions: 'Siéntate frente a la polea con el torso erguido.', start: 'Rodillas ligeramente flexionadas y brazos extendidos.', execution: 'Lleva el agarre hacia el abdomen juntando suavemente los omóplatos.', mistakes: 'Redondear la espalda o echar el torso hacia atrás.' },
+    'lateral-raise': { name: 'Elevación lateral', muscle: 'Hombro medio', category: 'Fuerza', image: 'shoulder-press.svg', instructions: 'Sujeta mancuernas ligeras a los lados del cuerpo.', start: 'Codos ligeramente flexionados y abdomen firme.', execution: 'Eleva los brazos hacia los lados hasta la altura de los hombros y baja lentamente.', mistakes: 'Balancear el cuerpo o elevar los hombros hacia las orejas.' },
     'face-pull': { name: 'Face pull', muscle: 'Hombro posterior y espalda alta', category: 'Fuerza', image: 'row.svg', instructions: 'Coloca la cuerda a la altura de la cara.', start: 'De pie, brazos extendidos y abdomen firme.', execution: 'Tira de la cuerda hacia la cara separando las manos.', mistakes: 'Elevar los hombros o arquear la zona lumbar.' },
     'pull-up': { name: 'Dominadas asistidas', muscle: 'Espalda y bíceps', category: 'Fuerza', image: 'lat-pulldown.svg', instructions: 'Usa una máquina asistida o banda para adaptar la dificultad.', start: 'Agarra la barra y activa los hombros.', execution: 'Lleva el pecho hacia la barra y baja de forma controlada.', mistakes: 'Balancearte o encoger los hombros.' },
     'straight-arm-pulldown': { name: 'Jalón con brazos rectos', muscle: 'Dorsales', category: 'Fuerza', image: 'lat-pulldown.svg', instructions: 'Frente a una polea alta, sujeta la barra con brazos casi extendidos.', start: 'Cadera ligeramente atrás y abdomen firme.', execution: 'Lleva la barra hacia los muslos sin doblar mucho los codos.', mistakes: 'Balancear el tronco o convertirlo en un remo.' },
@@ -255,7 +256,7 @@
     const exercises = day.exercises.map(ex => {
       const info = EXERCISES[ex.exerciseId] || EXERCISES.squat;
       return {
-        exerciseId: ex.exerciseId, name: info.name, muscle: info.muscle,
+        exerciseId: ex.exerciseId, name: info.name, muscle: info.muscle, ...(ex.cardioRole ? { cardioRole: ex.cardioRole } : {}),
         rest: Number(ex.rest) || 60,
         sets: Array.from({ length: Math.max(1, Math.min(10, Number(ex.sets) || 3)) }, () => ({ reps: Number(ex.reps) || 10, weight: Number(ex.weight) || 0, done: false }))
       };
@@ -275,7 +276,7 @@
   function renderTrainingPreview(day) {
     if (!day) return `<div class="empty-inline"><span>＋</span><div><strong>Selecciona un día</strong><p>Elige una rutina para ver sus ejercicios.</p></div></div>`;
     const exercises = day.exercises || [];
-    return `<div class="preview-heading"><strong>${esc(day.name)}</strong><span>${exercises.length} ejercicios</span></div><div class="preview-exercises">${exercises.map(ex => { const info = EXERCISES[ex.exerciseId] || EXERCISES.squat; return `<div><img src="assets/exercises/${info.image}" alt=""><span>${esc(info.name)}</span><small>${Number(ex.sets) || 3} × ${Number(ex.reps) || 10}</small></div>`; }).join('') || '<p class="muted small-copy">Este día aún no tiene ejercicios.</p>'}</div>`;
+    return `<div class="preview-heading"><strong>${esc(day.name)}</strong><span>${exercises.length} ejercicios</span></div><div class="preview-exercises">${exercises.map(ex => { const info = EXERCISES[ex.exerciseId] || EXERCISES.squat; return `<div><img src="assets/exercises/${info.image}" alt=""><span>${esc(info.name)}</span><small>${ex.cardioRole ? `${Number(ex.reps)} min` : `${Number(ex.sets) || 3} × ${Number(ex.reps) || 10}`}</small></div>`; }).join('') || '<p class="muted small-copy">Este día aún no tiene ejercicios.</p>'}</div>`;
   }
   function renderTraining() {
     const session = state.activeSession && state.activeSession.profileId === state.profileId && state.activeSession.status === 'active' ? state.activeSession : null;
