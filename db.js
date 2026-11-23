@@ -99,7 +99,33 @@
 
   async function seed() {
     const profiles = await getAll('profiles');
-    if (profiles.length) return profiles;
+    if (profiles.length) {
+      // Actualiza la rutina inicial ya guardada en dispositivos existentes sin borrar su historial.
+      const starter = await get('routines', 'routine-me-starter');
+      if (starter?.days?.length) {
+        const additions = [
+          ['shoulder-press', 'treadmill'],
+          ['squat', 'lat-pulldown'],
+          ['push-up', 'plank']
+        ];
+        let changed = false;
+        starter.days.forEach((day, index) => {
+          const extras = additions[index] || additions[0];
+          for (const exerciseId of extras) {
+            if (day.exercises.length >= 6) break;
+            if (!day.exercises.some(ex => ex.exerciseId === exerciseId)) {
+              day.exercises.push({ exerciseId, sets: 3, reps: 10, rest: 60, weight: 0 });
+              changed = true;
+            }
+          }
+        });
+        if (changed) {
+          starter.updatedAt = new Date().toISOString();
+          await put('routines', starter);
+        }
+      }
+      return profiles;
+    }
     const now = new Date().toISOString();
     const mine = {
       id: 'profile-me', name: 'Mi perfil', age: '', weight: '', height: '',
@@ -119,19 +145,25 @@
           { exerciseId: 'squat', sets: 3, reps: 10, rest: 90, weight: 0 },
           { exerciseId: 'push-up', sets: 3, reps: 10, rest: 60, weight: 0 },
           { exerciseId: 'lat-pulldown', sets: 3, reps: 12, rest: 75, weight: 0 },
-          { exerciseId: 'plank', sets: 3, reps: 30, rest: 45, weight: 0 }
+          { exerciseId: 'plank', sets: 3, reps: 30, rest: 45, weight: 0 },
+          { exerciseId: 'shoulder-press', sets: 3, reps: 10, rest: 60, weight: 0 },
+          { exerciseId: 'treadmill', sets: 2, reps: 10, rest: 45, weight: 0 }
         ]},
         { id: 'day-b', name: 'Día B · Pierna y core', exercises: [
           { exerciseId: 'deadlift', sets: 3, reps: 8, rest: 120, weight: 0 },
           { exerciseId: 'lunge', sets: 3, reps: 10, rest: 60, weight: 0 },
           { exerciseId: 'glute-bridge', sets: 3, reps: 12, rest: 60, weight: 0 },
-          { exerciseId: 'mountain-climber', sets: 3, reps: 20, rest: 45, weight: 0 }
+          { exerciseId: 'mountain-climber', sets: 3, reps: 20, rest: 45, weight: 0 },
+          { exerciseId: 'squat', sets: 3, reps: 10, rest: 75, weight: 0 },
+          { exerciseId: 'jumping-jacks', sets: 2, reps: 30, rest: 45, weight: 0 }
         ]},
         { id: 'day-c', name: 'Día C · Tren superior + cardio', exercises: [
           { exerciseId: 'shoulder-press', sets: 3, reps: 10, rest: 75, weight: 0 },
           { exerciseId: 'row', sets: 3, reps: 12, rest: 75, weight: 0 },
           { exerciseId: 'biceps-curl', sets: 2, reps: 12, rest: 60, weight: 0 },
-          { exerciseId: 'jumping-jacks', sets: 3, reps: 30, rest: 45, weight: 0 }
+          { exerciseId: 'jumping-jacks', sets: 3, reps: 30, rest: 45, weight: 0 },
+          { exerciseId: 'lat-pulldown', sets: 3, reps: 10, rest: 75, weight: 0 },
+          { exerciseId: 'push-up', sets: 2, reps: 10, rest: 60, weight: 0 }
         ]}
       ]
     };
