@@ -213,7 +213,11 @@
   }
   function exerciseRow(ex, index) {
     const details = EXERCISES[ex.exerciseId] || EXERCISES.squat;
-    return `<div class="routine-exercise-row" data-ex-index="${index}" data-cardio-role="${esc(ex.cardioRole || "")}"><img src="assets/exercises/${details.image}" alt="Ilustración de ${esc(details.name)}"><div class="exercise-fields"><div class="exercise-select-line"><select data-field="exerciseId" aria-label="Ejercicio" ${ex.cardioRole ? "disabled" : ""}>${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select><button type="button" class="mini-edit" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" title="Ver técnica">ⓘ</button>${ex.cardioRole ? `<span class="chip">Cardio obligatorio</span>` : `<button type="button" class="mini-edit remove-exercise" data-action="remove-exercise" data-index="${index}" title="Quitar ejercicio">×</button>`}</div><div class="exercise-number-fields"><label>Series<input type="number" min="1" max="50" data-field="sets" value="${Number(ex.sets) || 3}"></label><label>Reps / seg<input type="number" min="1" max="300" data-field="reps" value="${Number(ex.reps) || 10}"></label><label>Descanso (s)<input type="number" min="0" max="600" data-field="rest" value="${Number(ex.rest) || 60}"></label><label>Peso (kg)<input type="number" min="0" max="500" step="0.5" data-field="weight" value="${Number(ex.weight) || 0}"></label></div><small>${esc(details.muscle)} · ${esc(details.category)}</small></div></div>`;
+    const categories = [...new Set(Object.values(EXERCISES).map(item => item.librarySection || muscleGroup(item)))].sort((a,b) => a.localeCompare(b, 'es'));
+    const selectedCategory = details.librarySection || muscleGroup(details);
+    const categoryOptions = categories.map(category => `<option value="${esc(category)}" ${category === selectedCategory ? 'selected' : ''}>${esc(category)}</option>`).join('');
+    const exerciseOptions = Object.entries(EXERCISES).filter(([, item]) => (item.librarySection || muscleGroup(item)) === selectedCategory).map(([id,item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('');
+    return `<div class="routine-exercise-row" data-ex-index="${index}" data-cardio-role="${esc(ex.cardioRole || "")}"><img src="assets/exercises/${details.image}" alt="Ilustración de ${esc(details.name)}"><div class="exercise-fields"><div class="exercise-select-line"><select data-exercise-category aria-label="Categoría muscular" ${ex.cardioRole ? "disabled" : ""}>${categoryOptions}</select><select data-field="exerciseId" aria-label="Ejercicio" ${ex.cardioRole ? "disabled" : ""}>${exerciseOptions}</select><button type="button" class="mini-edit" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" title="Ver técnica">ⓘ</button>${ex.cardioRole ? `<span class="chip">Cardio obligatorio</span>` : `<button type="button" class="mini-edit remove-exercise" data-action="remove-exercise" data-index="${index}" title="Quitar ejercicio">×</button>`}</div><div class="exercise-number-fields"><label>Series<input type="number" min="1" max="50" data-field="sets" value="${Number(ex.sets) || 3}"></label><label>Reps / seg<input type="number" min="1" max="300" data-field="reps" value="${Number(ex.reps) || 10}"></label><label>Descanso (s)<input type="number" min="0" max="600" data-field="rest" value="${Number(ex.rest) || 60}"></label><label>Peso (kg)<input type="number" min="0" max="500" step="0.5" data-field="weight" value="${Number(ex.weight) || 0}"></label></div><small>${esc(details.muscle)} · ${esc(details.category)}</small></div></div>`;
   }
   function renderRoutineEditor() {
     const routine = state.editRoutine;
@@ -791,10 +795,24 @@
         const r = state.routines.find(r => r.id === $('#training-routine')?.value);
         const preview = $('#training-preview'); if (preview) preview.innerHTML = renderTrainingPreview(r?.days?.[Number(target.value)]);
       }
+      if (target.matches('[data-exercise-category]')) {
+        const row = target.closest('.routine-exercise-row');
+        const exerciseSelect = row?.querySelector('[data-field="exerciseId"]');
+        const category = target.value;
+        const options = Object.entries(EXERCISES).filter(([, item]) => (item.librarySection || muscleGroup(item)) === category);
+        if (exerciseSelect && options.length) {
+          exerciseSelect.innerHTML = options.map(([id,item], i) => `<option value="${id}" ${i === 0 ? 'selected' : ''}>${esc(item.name)}</option>`).join('');
+          exerciseSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
       if (target.matches('[data-field]')) {
         const row = target.closest('.routine-exercise-row');
         const im = row?.querySelector('img');
-        if (target.dataset.field === 'exerciseId' && im) { const ex = EXERCISES[target.value]; im.src = `assets/exercises/${ex.image}`; im.alt = `Ilustración de ${ex.name}`; }
+        if (target.dataset.field === 'exerciseId' && im) {
+          const ex = EXERCISES[target.value]; im.src = `assets/exercises/${ex.image}`; im.alt = `Ilustración de ${ex.name}`;
+          const detailButton = row.querySelector('[data-action="exercise-detail"]'); if (detailButton) detailButton.dataset.id = target.value;
+          const summary = row.querySelector('.exercise-fields > small'); if (summary) summary.textContent = `${ex.muscle} · ${ex.category}`;
+        }
       }
       if (target.matches('[data-session-field]')) {
         const exIndex = Number(target.dataset.exIndex), setIndex = Number(target.dataset.setIndex), field = target.dataset.sessionField;
