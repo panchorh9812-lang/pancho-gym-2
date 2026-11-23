@@ -25,3 +25,5 @@
 .cardio-countdown strong{font-size:clamp(30px,5vw,38px);letter-spacing:2px}
 .cardio-countdown .eyebrow{color:var(--lime)}
 @media(max-width:700px){.exercise-library-group .library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cardio-countdown{align-items:flex-start;flex-direction:column}}
+
+.profile-avatar-edit{position:relative;cursor:pointer;padding:0;display:grid;place-items:center}.profile-avatar-edit:focus-visible{outline:3px solid var(--lime);outline-offset:3px}.profile-avatar-camera{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.48);color:#fff;font-size:21px;opacity:0;transition:opacity .18s}.profile-avatar-edit:hover .profile-avatar-camera,.profile-avatar-edit:focus-visible .profile-avatar-camera{opacity:1}.profile-avatar-edit .profile-photo-input{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0!important;cursor:pointer!important;z-index:3!important;padding:0!important;min-height:0!important}
