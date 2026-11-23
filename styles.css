@@ -79,3 +79,11 @@
 @media(prefers-reduced-motion:reduce){
   .main-nav{scroll-behavior:auto}
 }
+
+
+/* Preferencia de tamaño de letra elegida desde Ajustes */
+.font-settings-panel .panel-heading{align-items:center}.font-settings-panel .panel-heading p{margin:6px 0 0;color:var(--muted);font-size:11px;line-height:1.5}.font-preview{display:grid;place-items:center;flex:0 0 54px;height:54px;border-radius:14px;background:rgba(168,85,247,.12);color:var(--lime);font-size:25px;font-weight:800}.font-size-control{display:grid;gap:8px;margin-top:18px;max-width:420px;font-size:12px;font-weight:700}.font-size-control select{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);color:var(--text);font-size:16px}.font-settings-note{display:block;margin-top:10px;color:var(--muted);font-size:10px;line-height:1.5}
+html[data-font-size="small"] .app-shell{zoom:.94}
+html[data-font-size="medium"] .app-shell{zoom:1}
+html[data-font-size="large"] .app-shell{zoom:1.08}
+@media(max-width:720px){html[data-font-size="small"] .app-shell{zoom:.94}html[data-font-size="medium"] .app-shell{zoom:1}html[data-font-size="large"] .app-shell{zoom:1.06}}
