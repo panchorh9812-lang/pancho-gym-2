@@ -232,20 +232,59 @@
   }
   function buildMuscleSplitRoutine() {
     const now = new Date().toISOString();
-    const make = (id, reps, sets = 3) => ({ exerciseId: id, sets, reps, rest: 60, weight: 0 });
-    const cardio = (minutes, cardioRole) => ({ ...make('treadmill', minutes, 1), cardioRole });
+    const profile = state.profile || {};
+    const experience = profile.experience || 'Principiante';
+    const goal = profile.goal || 'Perder grasa y conservar músculo';
+    const sets = experience === 'Avanzado' ? 4 : experience === 'Intermedio' ? 3 : 2;
+    const repsForGoal = /fuerza/i.test(goal) ? 8 : /hipertrofia|masa muscular/i.test(goal) ? 10 : 12;
+    const rest = /fuerza/i.test(goal) ? 120 : 75;
+    const recentIds = new Set((state.sessions || []).filter(session => session.status === 'completed').slice(0, 2).flatMap(session => (session.exercises || []).filter(ex => !ex.cardioRole).map(ex => ex.exerciseId)));
+    const all = Object.entries(EXERCISES).filter(([, ex]) => ex.category !== 'Cardio' && ex.category !== 'Movilidad' && ex.category !== 'Recuperación');
+    const matches = pattern => all.filter(([id, ex]) => pattern.test([id, ex.name, ex.muscle, ex.librarySection || ''].join(' ')));
+    const shuffle = list => [...list].sort(() => Math.random() - 0.5);
+    const choose = (pool, count, used) => {
+      const fresh = shuffle(pool.filter(([id]) => !used.has(id) && !recentIds.has(id)));
+      const fallback = shuffle(pool.filter(([id]) => !used.has(id)));
+      const chosen = [...fresh, ...fallback].slice(0, count);
+      chosen.forEach(([id]) => used.add(id));
+      return chosen;
+    };
+    const makeDay = (name, groups) => {
+      const used = new Set();
+      const selected = groups.flatMap(([pattern, count]) => choose(matches(pattern), count, used));
+      // Completa hasta ocho movimientos con ejercicios distintos del mismo enfoque muscular.
+      const combined = groups.flatMap(([pattern]) => matches(pattern));
+      if (selected.length < 6) selected.push(...choose(combined, 6 - selected.length, used));
+      const exercises = selected.slice(0, 8).map(([exerciseId]) => ({
+        exerciseId, sets, reps: repsForGoal, rest, weight: 0
+      }));
+      return {
+        id: uid('day'), name,
+        exercises: [
+          { exerciseId: 'treadmill', sets: 1, reps: 20, rest: 0, weight: 0, cardioRole: 'cardio-start' },
+          ...exercises,
+          { exerciseId: 'treadmill', sets: 1, reps: 10, rest: 0, weight: 0, cardioRole: 'cardio-end' }
+        ]
+      };
+    };
     const days = [
-      { id: uid('day'), name: 'Día 1 · Pierna completa', exercises: [
-        cardio(20, 'cardio-start'), make('squat', 10), make('leg-press', 12), make('romanian-deadlift', 10), make('leg-extension', 12), make('leg-curl', 12), make('calf-raise', 15), cardio(10, 'cardio-end')
-      ]},
-      { id: uid('day'), name: 'Día 2 · Pecho y brazo', exercises: [
-        cardio(20, 'cardio-start'), make('bench-press', 10), make('incline-press', 10), make('chest-fly', 12), make('biceps-curl', 12), make('hammer-curl', 12), make('triceps-pushdown', 12), make('triceps-extension', 12), cardio(10, 'cardio-end')
-      ]},
-      { id: uid('day'), name: 'Día 3 · Espalda y hombro', exercises: [
-        cardio(20, 'cardio-start'), make('lat-pulldown', 10), make('seated-row', 12), make('face-pull', 15), make('shoulder-press', 10), make('row', 12), make('lateral-raise', 12), cardio(10, 'cardio-end')
-      ]}
+      makeDay('Día 1 · Pecho + brazo', [
+        [/pecho|pectoral/i, 3], [/bíceps|biceps|tríceps|triceps|braquial|antebrazo/i, 3]
+      ]),
+      makeDay('Día 2 · Espalda + hombro', [
+        [/espalda|dorsal|trapecio/i, 3], [/hombro|deltoide|manguito/i, 3]
+      ]),
+      makeDay('Día 3 · Tren inferior + abdomen', [
+        [/cuádr|cuadr|femoral|isqui|glúte|aductor|abductor|pantorrilla|tibial|pierna/i, 4],
+        [/abdomen|oblicuo|transverso|core/i, 2]
+      ])
     ];
-    return { id: uid('routine'), profileId: state.profileId, name: 'Rutina dividida · 3 grupos musculares', goal: 'Fuerza e hipertrofia', location: 'Gimnasio', createdAt: now, updatedAt: now, cardioRequired: true, days };
+    return {
+      id: uid('routine'), profileId: state.profileId,
+      name: 'Rutina inteligente · 3 días',
+      goal, location: 'Gimnasio', createdAt: now, updatedAt: now,
+      cardioRequired: true, generator: 'pancho-smart-v1', days
+    };
   }
 
   Object.assign(EXERCISES, {
@@ -476,8 +515,8 @@
 
   function renderRoutines() {
     if (state.editRoutine) return renderRoutineEditor();
-    return `<div class="page-heading"><div><span class="eyebrow">PLANIFICACIÓN</span><h1>Mis rutinas</h1><p>Planes adaptables a tu objetivo y al equipo que tienes disponible.</p></div><div class="heading-actions"><button class="button button-outline" data-action="generate-routine">✦ Generar recomendada</button><button class="button button-outline" data-action="create-muscle-split">＋ Rutina por músculos</button><button class="button button-primary" data-action="new-routine">＋ Crear rutina</button></div></div>
-      <div class="routine-guidance"><span>✦</span><div><strong>Rutina dividida por músculos</strong><p>Incluye pierna completa, pecho y brazo, y espalda y hombro. Cada sesión lleva 20 minutos de cardio al inicio y 10 minutos al final.</p></div></div>
+    return `<div class="page-heading"><div><span class="eyebrow">PLANIFICACIÓN</span><h1>Mis rutinas</h1><p>Planes adaptables a tu objetivo y al equipo que tienes disponible.</p></div><div class="heading-actions"><button class="button button-outline" data-action="generate-routine">✦ Generar recomendada</button><button class="button button-outline" data-action="create-muscle-split">✦ Generar rutina inteligente</button><button class="button button-primary" data-action="new-routine">＋ Crear rutina</button></div></div>
+      <div class="routine-guidance"><span>✦</span><div><strong>Generador inteligente de 3 días</strong><p>Crea una combinación distinta de 6 a 8 ejercicios según tu objetivo y experiencia: pecho + brazo, espalda + hombro y tren inferior + abdomen. Incluye 20 minutos de cardio inicial y 10 al final.</p></div></div>
       ${state.routines.length ? `<section class="routine-grid">${state.routines.map(routineCard).join('')}</section>` : `<section class="empty-state"><div class="empty-symbol">▤</div><h3>Tu primer plan empieza aquí</h3><p>Crea una rutina para este perfil. Los planes no se comparten con otros perfiles.</p><div class="empty-actions"><button class="button button-primary" data-action="generate-routine">✦ Generar rutina recomendada</button><button class="button button-outline" data-action="new-routine">Crear desde cero</button></div></section>`}
       <section class="panel exercise-library"><div class="panel-heading"><div><span class="eyebrow">BIBLIOTECA</span><h3>Ejercicios disponibles</h3></div><span class="chip">${Object.keys(EXERCISES).length} ejercicios</span></div><div class="library-grid">${renderExerciseLibrary()}</div></section>`;
   }
@@ -727,7 +766,7 @@
       case 'new-profile': state.showProfileCreate = true; state.view = 'perfil'; await render(); break;
       case 'close-profile-create': state.showProfileCreate = false; await render(); break;
       case 'edit-profile': state.view = 'perfil'; await render(); break;
-      case 'create-muscle-split': { const routine = buildMuscleSplitRoutine(); await GymDB.put('routines', routine); state.selectedRoutineId = routine.id; notify('Rutina dividida creada con cardio obligatorio al inicio y al final de cada día.'); await render(); break; }
+      case 'create-muscle-split': { const routine = buildMuscleSplitRoutine(); await GymDB.put('routines', routine); state.selectedRoutineId = routine.id; notify('¡Rutina inteligente creada! Se eligieron ejercicios según tu objetivo y experiencia.'); await render(); break; }
       case 'generate-routine': { const recommended = buildRecommendedRoutine(state.profile); await GymDB.put('routines', recommended); state.selectedRoutineId = recommended.id; notify(`Rutina recomendada creada para ${state.profile.name}. Ajusta las cargas a tu nivel.`); await render(); break; }
       case 'new-routine': state.editRoutine = { id: null, profileId: state.profileId, name: 'Mi nueva rutina', goal: state.profile.goal, location: 'Gimnasio', createdAt: new Date().toISOString(), days: [{ id: uid('day'), name: 'Día 1 · Cuerpo completo', exercises: [{ exerciseId: 'squat', sets: 3, reps: 10, rest: 60, weight: 0 }] }] }; state.editDayIndex = 0; await render(); break;
       case 'edit-routine': state.editRoutine = structuredClone(state.routines.find(r => r.id === id)); state.editDayIndex = 0; await render(); break;
