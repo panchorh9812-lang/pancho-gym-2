@@ -77,6 +77,13 @@
     installPrompt: null
   };
   const root = $('#app');
+  const FONT_SIZE_KEY = 'pg-font-size';
+  function applyFontSize(size = localStorage.getItem(FONT_SIZE_KEY) || 'medium') {
+    const validSize = ['small', 'medium', 'large'].includes(size) ? size : 'medium';
+    document.documentElement.dataset.fontSize = validSize;
+    return validSize;
+  }
+  applyFontSize();
 
   function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -716,6 +723,7 @@
   }
   function renderSettings() {
     return `<div class="page-heading"><div><span class="eyebrow">DATOS EN TU DISPOSITIVO</span><h1>Ajustes y respaldos</h1><p>Exporta o recupera perfiles, rutinas, sesiones, medidas y fotografías.</p></div><span class="local-badge">Sin nube · Sin cuentas</span></div>
+      <section class="panel font-settings-panel"><div class="panel-heading"><div><span class="eyebrow">PERSONALIZACIÓN</span><h3>Tamaño de letra</h3><p>Elige el tamaño que te resulte más cómodo para leer la aplicación.</p></div><span class="font-preview" aria-hidden="true">Aa</span></div><label class="font-size-control" for="font-size-select">Tamaño de fuente<select id="font-size-select" aria-label="Tamaño de fuente"><option value="small" ${applyFontSize() === 'small' ? 'selected' : ''}>Chica</option><option value="medium" ${applyFontSize() === 'medium' ? 'selected' : ''}>Mediana</option><option value="large" ${applyFontSize() === 'large' ? 'selected' : ''}>Grande</option></select></label><small class="font-settings-note">El cambio se aplica al instante y se conserva en este dispositivo.</small></section>
       <section class="panel backup-panel"><div class="backup-icon">⇅</div><div class="backup-copy"><h3>Respaldo completo</h3><p>Descarga un archivo JSON con todos los perfiles y su información, incluidas las fotografías. Guárdalo en un lugar privado para poder transferirlo a otro dispositivo.</p><button class="button button-primary" data-action="export-backup">Descargar respaldo completo</button><small>La restauración reemplaza todos los datos locales actuales de este navegador.</small></div></section>
       <section class="panel backup-panel"><div class="backup-icon">↥</div><div class="backup-copy"><h3>Restaurar un respaldo</h3><p>Selecciona un archivo JSON creado por PANCHO GYM 2.0. Se validará antes de reemplazar el contenido actual.</p><label class="button button-outline file-button">Seleccionar archivo JSON<input id="backup-file" type="file" accept="application/json,.json"></label><small>Antes de importar, descarga una copia del estado actual para poder recuperarlo.</small></div></section>
       <section class="panel settings-info"><h3>Almacenamiento local</h3><div class="settings-row"><span>Base de datos</span><strong>IndexedDB · pancho-gym-2</strong></div><div class="settings-row"><span>Fotos</span><strong>Guardadas como imágenes Blob</strong></div><div class="settings-row"><span>Conexión</span><strong>Sincronización en la nube desactivada</strong></div><div class="settings-row"><span>Perfiles</span><strong>${state.profiles.length} perfiles independientes</strong></div></section>
@@ -924,6 +932,11 @@
         target.value = '';
         notify('¡Foto de perfil guardada!');
         await render(); return;
+      }
+      if (target.id === 'font-size-select') {
+        const size = applyFontSize(target.value);
+        localStorage.setItem(FONT_SIZE_KEY, size);
+        notify(`Tamaño de letra: ${size === 'small' ? 'chica' : size === 'large' ? 'grande' : 'mediana'}.`);
       }
       if (target.id === 'profile-switch') {
         if (state.activeSession && state.activeSession.status === 'active' && state.activeSession.profileId === state.profileId) {
