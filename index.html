@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111719">
+  <meta name="description" content="PANCHO GYM 2.0 — entrenamiento personal, rutinas y progreso guardados en tu dispositivo.">
+  <title>PANCHO GYM 2.0</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="PANCHO GYM, inicio">
+        <span class="brand-mark" aria-hidden="true">PG<span>+</span></span>
+        <span class="brand-copy"><strong>PANCHO GYM <em>2.0</em></strong><small>ENTRENA CON INTENCIÓN</small></span>
+      </a>
+      <div class="topbar-tools">
+        <span id="network-status" class="network-status"><i></i><span>Local</span></span>
+        <label class="sr-only" for="profile-switch">Perfil activo</label>
+        <select id="profile-switch" class="profile-switch" aria-label="Cambiar perfil"></select>
+        <button class="icon-button" id="add-profile-btn" type="button" title="Añadir perfil" aria-label="Añadir perfil">＋</button>
+      </div>
+    </header>
+
+    <nav class="main-nav" aria-label="Navegación principal">
+      <button class="nav-item active" data-view="inicio" type="button"><span>▦</span>Inicio</button>
+      <button class="nav-item" data-view="perfil" type="button"><span>◉</span>Mi perfil</button>
+      <button class="nav-item" data-view="rutinas" type="button"><span>▤</span>Rutinas</button>
+      <button class="nav-item" data-view="entrenar" type="button"><span>◉</span>Entrenar</button>
+      <button class="nav-item" data-view="progreso" type="button"><span>⌁</span>Progreso</button>
+      <button class="nav-item" data-view="fotos" type="button"><span>▧</span>Fotos</button>
+      <button class="nav-item" data-view="ajustes" type="button"><span>⚙</span>Ajustes</button>
+    </nav>
+
+    <main id="app" class="main-content" tabindex="-1" aria-live="polite">
+      <section class="loading-panel"><div class="loader"></div><p>Preparando tu espacio de entrenamiento…</p></section>
+    </main>
+
+    <footer class="app-footer"><span>Fuerte hoy. Mejor mañana.</span><span>Los datos se guardan en este dispositivo.</span></footer>
+  </div>
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="confirm-dialog" class="confirm-dialog">
+    <form method="dialog"><h3 id="dialog-title">Confirmar acción</h3><p id="dialog-message"></p><div class="dialog-actions"><button class="button button-quiet" value="cancel">Volver</button><button class="button button-danger" value="confirm">Continuar</button></div></form>
+  </dialog>
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
