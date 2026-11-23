@@ -70,12 +70,14 @@
   async function put(storeName, value) {
     const db = await open();
     const tx = db.transaction(storeName, 'readwrite');
-    const result = await requestResult(tx.objectStore(storeName).put(value));
-    await new Promise((resolve, reject) => {
-      tx.oncomplete = resolve;
+    const completion = new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error || new Error('No se pudieron guardar los cambios.'));
       tx.onabort = () => reject(tx.error || new Error('Se canceló el guardado.'));
     });
+    const request = tx.objectStore(storeName).put(value);
+    const result = await requestResult(request);
+    await completion;
     return result;
   }
 
