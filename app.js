@@ -792,9 +792,16 @@
             canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82));
           }; img.onerror = reject; img.src = dataUrl;
         });
+        if (!state.profile?.id) throw new Error('No se encontró el perfil activo. Vuelve a seleccionar tu perfil e inténtalo de nuevo.');
         const updated = { ...state.profile, photo, updatedAt: new Date().toISOString() };
-        await GymDB.put('profiles', updated); state.profile = updated;
-        notify('Foto de perfil actualizada.'); await render(); return;
+        await GymDB.put('profiles', updated);
+        const saved = await GymDB.get('profiles', updated.id);
+        if (!saved?.photo || saved.photo !== photo) throw new Error('El navegador no confirmó el guardado de la foto. Revisa el espacio disponible y vuelve a intentarlo.');
+        state.profile = saved;
+        state.profiles = state.profiles.map(profile => profile.id === saved.id ? saved : profile);
+        target.value = '';
+        notify('Foto guardada en este dispositivo.');
+        await render(); return;
       }
       if (target.id === 'profile-switch') {
         if (state.activeSession && state.activeSession.status === 'active' && state.activeSession.profileId === state.profileId) {
