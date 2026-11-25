@@ -97,3 +97,106 @@ html[data-app-color="blanco"]{--lime:#f8fafc;--lime-dark:#d1d5db}
 html[data-app-color="blanco"] .brand-mark,html[data-app-color="blanco"] .button-primary,html[data-app-color="blanco"] .nav-item.active,html[data-app-color="blanco"] .set-check input:checked+span{color:#111719}
 html[data-app-color="blanco"] .button-primary:hover{background:#e5e7eb}
 html[data-app-color="blanco"] .set-check input:checked+span:after{color:#111719}
+
+
+/* Mobile usability pass v26: thumb-friendly spacing, readable navigation and layouts */
+@media(max-width:720px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  .app-shell{width:100%;max-width:100%;margin:0;padding:0 12px}
+  .topbar{position:sticky;top:0;z-index:45;padding:8px 0;background:rgba(13,18,20,.94);backdrop-filter:blur(14px)}
+  .brand-mark{width:40px;height:40px;font-size:15px}
+  .brand-copy strong{font-size:13px}
+  .brand-copy small{font-size:8px;letter-spacing:.8px}
+  .topbar-tools{gap:6px}
+  .network-status{font-size:9px;padding:5px 7px}
+  .profile-switch{height:40px;min-height:40px;font-size:13px}
+  .icon-button{width:42px;height:42px;min-width:42px}
+  .main-content{padding:14px 0 calc(122px + env(safe-area-inset-bottom))}
+  .page-heading{gap:10px;align-items:flex-start;margin-bottom:16px}
+  .page-heading h1{font-size:clamp(23px,6vw,30px);line-height:1.15}
+  .page-heading p{font-size:13px;line-height:1.5}
+  .page-heading>.button{min-height:44px;max-width:none}
+  .panel{padding:16px;border-radius:17px;margin-bottom:13px}
+  .panel-heading{gap:12px;align-items:flex-start}
+  .panel-heading h3{font-size:17px}
+  .panel-heading p{font-size:12px;line-height:1.5}
+  .button{min-height:48px;padding:0 16px;font-size:13px;border-radius:13px}
+  .button-quiet,.text-button,.mini-edit{min-height:42px}
+  input,select,textarea{border-radius:12px!important}
+  label{font-size:12px}
+  .main-nav{
+    grid-template-columns:repeat(7,minmax(0,1fr));
+    min-height:76px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(10,14,16,.98);border-top:1px solid rgba(255,255,255,.12)
+  }
+  .nav-item{height:58px;min-height:58px;padding:6px 0;gap:5px;border-radius:12px;font-size:clamp(8px,2.6vw,10px);font-weight:700}
+  .nav-item span{font-size:21px}
+  .nav-item.active{background:rgba(var(--lime),.14);color:var(--lime)}
+  .main-content{padding-bottom:calc(116px + env(safe-area-inset-bottom))}
+  .app-footer{display:none}
+  .metric-card{padding:13px;border-radius:15px}
+  .metric-card>strong{font-size:clamp(21px,6vw,27px)}
+  .metrics-grid{gap:8px}
+  .hero-panel{min-height:230px;padding:18px}
+  .hero-copy h1{font-size:clamp(25px,7vw,32px)}
+  .hero-copy p{font-size:13px}
+  .hero-actions{gap:8px}
+  .hero-actions .button{min-height:48px}
+  .week-strip{gap:5px}
+  .week-day{min-height:68px;padding:7px 3px}
+  .day-check span{width:42px;height:42px}
+  .workout-exercise{padding:14px;margin-bottom:12px;border-radius:16px}
+  .workout-exercise-head{gap:12px}
+  .workout-exercise-head img{width:78px;height:78px;object-fit:cover;border-radius:12px}
+  .workout-exercise-head h3{font-size:16px;line-height:1.3}
+  .workout-exercise-head .eyebrow{font-size:9px}
+  .set-table{gap:7px}
+  .set-row{grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 48px;gap:6px;align-items:center}
+  .set-row input[type=number]{width:100%;min-width:0;height:48px;padding:7px;text-align:center}
+  .set-check{width:48px;height:48px;min-width:48px;min-height:48px}
+  .set-check span{width:28px;height:28px;border-radius:9px}
+  .sticky-workout-actions{bottom:calc(88px + env(safe-area-inset-bottom));padding:8px;gap:7px;border-radius:15px}
+  .sticky-workout-actions .button{font-size:11px;min-height:44px;padding:0 9px}
+  .training-picker{padding:16px}
+  .training-picker select{min-height:48px}
+  .profile-form,.routine-editor,.measurement-form,.photo-form-fields,.compare-selectors{gap:12px}
+  .profile-form input,.profile-form select,.routine-editor input,.routine-editor select,.measurement-form input,.photo-form-fields input,.photo-form-fields select,.photo-form-fields textarea,.training-picker select,.create-profile-panel input,.compare-selectors select{min-height:48px}
+  .measurement-form{grid-template-columns:1fr 1fr}
+  .measurement-form .button{grid-column:1/-1}
+  .load-list{grid-template-columns:1fr}
+  .photo-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .photo-card>img{height:clamp(150px,48vw,230px)}
+  .photo-card-info{padding:11px}
+  .photo-card-info .text-button{width:100%;text-align:center}
+  .backup-panel{align-items:flex-start}
+  .backup-copy .button,.file-button{width:100%;justify-content:center}
+  .settings-row{display:grid;grid-template-columns:1fr;gap:5px}
+  .settings-row strong{text-align:left;overflow-wrap:anywhere}
+  .font-size-control{max-width:none}
+  .detail-backdrop{padding:10px}
+  .exercise-detail-card{max-height:90dvh;overflow-y:auto;padding:18px}
+  .toast-region{left:12px;right:12px;bottom:calc(96px + env(safe-area-inset-bottom))}
+}
+@media(max-width:420px){
+  .app-shell{padding-left:9px;padding-right:9px}
+  .topbar-tools .network-status{display:none}
+  .brand-copy small{display:none}
+  .profile-switch{max-width:120px}
+  .nav-item{font-size:8px}
+  .nav-item span{font-size:20px}
+  .main-nav{gap:2px}
+  .page-heading .heading-actions{max-width:100%;width:100%;justify-content:flex-start}
+  .page-heading .heading-actions .button{flex:1}
+  .photo-gallery{gap:7px}
+  .photo-card>img{height:155px}
+  .panel{padding:13px}
+  .week-day{min-height:60px}
+}
+@media(max-width:360px){
+  .nav-item{font-size:7px}
+  .nav-item span{font-size:18px}
+  .main-nav{padding-left:3px;padding-right:3px}
+  .set-row{grid-template-columns:29px minmax(0,1fr) minmax(0,1fr) 43px}
+  .set-check{width:43px;height:43px;min-width:43px}
+  .workout-exercise-head img{width:66px;height:66px}
+}
