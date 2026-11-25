@@ -78,6 +78,13 @@
   };
   const root = $('#app');
   const FONT_SIZE_KEY = 'pg-font-size';
+  const APP_COLOR_KEY = 'pg-app-color';
+  function applyAppColor(color = localStorage.getItem(APP_COLOR_KEY) || 'morado') {
+    const valid = ['morado', 'verde', 'rosa', 'vino', 'blanco'].includes(color) ? color : 'morado';
+    document.documentElement.dataset.appColor = valid;
+    return valid;
+  }
+  applyAppColor();
   function applyFontSize(size = localStorage.getItem(FONT_SIZE_KEY) || 'medium') {
     const validSize = ['small', 'medium', 'large'].includes(size) ? size : 'medium';
     document.documentElement.dataset.fontSize = validSize;
@@ -550,7 +557,7 @@
     };
   }
   function workoutProgress(session) {
-    const sets = (session?.exercises || []).filter(ex => !ex.cardioRole).flatMap(ex => ex.sets || []);
+    const sets = (session?.exercises || []).flatMap(ex => ex.sets || []);
     const total = sets.length;
     const done = sets.filter(set => set.done).length;
     return { total, done, pct: total ? Math.round(done / total * 100) : 0 };
@@ -621,21 +628,15 @@
       ensureExerciseTimer();
       const { pct, done, total } = workoutProgress(session);
       const pausedBanner = state.paused ? '<div class="paused-banner">Entrenamiento pausado. Pulsa Reanudar cuando estés listo.</div>' : '';
-      const cardioStartIndex = session.exercises.findIndex(ex => ex.cardioRole === 'cardio-start');
-      const cardioEndIndex = session.exercises.findIndex(ex => ex.cardioRole === 'cardio-end');
-      const exercises = session.exercises.map((ex, exIndex) => {
+        const exercises = session.exercises.map((ex, exIndex) => {
         const info = EXERCISES[ex.exerciseId] || EXERCISES.squat;
-        if (ex.cardioRole) return '';
-        return `<article class="panel workout-exercise"><div class="workout-exercise-head"><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><div><span class="eyebrow">${ex.cardioRole === "cardio-start" ? "CARDIO INICIAL · 20 MIN" : ex.cardioRole === "cardio-end" ? "CARDIO FINAL · 10 MIN" : `EJERCICIO ${exIndex + 1}`}</span><h3>${esc(ex.name || info.name)}</h3><small>${esc(info.muscle)}</small></div><button class="mini-edit" type="button" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" aria-label="Ver técnica de ${esc(info.name)}">ⓘ</button></div>
-          <div class="exercise-stopwatch"><div><span class="eyebrow">TIEMPO DEL EJERCICIO</span><strong data-exercise-clock="${exIndex}">${formatCountdown(exerciseElapsed(ex))}</strong><small data-exercise-status="${exIndex}">${ex.timerCompleted ? 'Ejercicio terminado' : ex.timerStartedAt ? 'Cronómetro en marcha' : ex.timerElapsedSeconds ? 'Tiempo acumulado' : 'Listo para comenzar'}</small></div><div class="timer-actions">${ex.timerCompleted ? '<button class="button button-quiet" type="button" disabled>Terminado ✓</button>' : ex.timerStartedAt ? '<button class="button button-primary" type="button" data-action="complete-exercise" data-index="' + exIndex + '" ' + (state.paused ? 'disabled' : '') + '>Terminar ejercicio</button>' : '<button class="button button-primary" type="button" data-action="start-exercise" data-index="' + exIndex + '" ' + (state.paused ? 'disabled' : '') + '>' + (ex.timerElapsedSeconds ? 'Continuar' : 'Iniciar ejercicio') + '</button>'}</div></div>
+        return `<article class="panel workout-exercise"><div class="workout-exercise-head"><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><div><span class="eyebrow">${ex.cardioRole === "cardio-start" ? `CARDIO INICIAL · ${Number(ex.reps) || 20} MIN` : ex.cardioRole === "cardio-end" ? `CARDIO FINAL · ${Number(ex.reps) || 10} MIN` : `EJERCICIO ${exIndex + 1}`}</span><h3>${esc(ex.name || info.name)}</h3><small>${esc(info.muscle)}</small></div><button class="mini-edit" type="button" data-action="exercise-detail" data-id="${esc(ex.exerciseId)}" aria-label="Ver técnica de ${esc(info.name)}">ⓘ</button></div>
           <div class="set-table"><div class="set-table-head"><span>Serie</span><span>Reps / min</span><span>Peso (kg)</span><span>Hecha</span></div>${ex.sets.map((set, setIndex) => `<div class="set-row ${set.done ? 'set-done' : ''}"><b>${setIndex + 1}</b><input type="number" min="1" max="300" value="${Number(set.reps) || 10}" aria-label="Repeticiones" data-session-field="reps" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><input type="number" min="0" max="500" step="0.5" value="${Number(set.weight) || 0}" aria-label="Peso utilizado en kg" data-session-field="weight" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${state.paused ? 'disabled' : ''}><label class="set-check" aria-label="Marcar serie ${setIndex + 1}"><input type="checkbox" data-session-field="done" data-ex-index="${exIndex}" data-set-index="${setIndex}" ${set.done ? 'checked' : ''} ${state.paused ? 'disabled' : ''}><span></span></label></div>`).join('')}</div>
           ${!ex.cardioRole ? `<div class="session-set-actions"><button type="button" class="button button-outline" data-action="add-session-set" data-index="${exIndex}" ${state.paused || ex.sets.length >= 50 ? "disabled" : ""}>＋ Agregar serie</button><button type="button" class="button button-quiet" data-action="remove-session-set" data-index="${exIndex}" ${state.paused || ex.sets.length <= 1 ? "disabled" : ""}>− Quitar última</button></div>` : ""}<div class="workout-exercise-foot"><span>Descanso sugerido: ${Number(ex.rest) || 60} s</span><label>Sustituir <select data-replace-exercise="${exIndex}" ${(state.paused || ex.cardioRole) ? 'disabled' : ''}>${Object.entries(EXERCISES).map(([id, item]) => `<option value="${id}" ${id === ex.exerciseId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label></div></article>`;
       }).join('');
       return `<div class="page-heading"><div><span class="eyebrow">SESIÓN EN CURSO</span><h1>${esc(session.routineName)}</h1><p>${esc(session.dayName)} · ${fmtDate(session.startedAt)}</p></div><span class="live-chip">● ${state.paused ? 'EN PAUSA' : 'EN VIVO'}</span></div>
         <section class="panel workout-summary"><div><span class="eyebrow">AVANCE DE LA SESIÓN</span><strong>${pct}%</strong><p>${done} de ${total} series completadas</p></div><div class="progress-ring" style="--progress:${pct * 3.6}deg"><span>${pct}%</span></div><div class="progress-track"><span style="width:${pct}%"></span></div></section>${pausedBanner}
-        ${cardioStartIndex >= 0 ? renderCardioCountdown(session.exercises[cardioStartIndex], cardioStartIndex) : ''}
         <section class="workout-exercises">${exercises}</section>
-         ${cardioEndIndex >= 0 ? renderCardioCountdown(session.exercises[cardioEndIndex], cardioEndIndex) : ''}
         <div class="sticky-workout-actions">${state.paused ? '<button class="button button-primary" data-action="resume-workout">▶ Reanudar</button>' : '<button class="button button-outline" data-action="pause-workout">Ⅱ Pausar</button>'}<button class="button button-primary" data-action="finish-workout">Finalizar sesión</button><button class="button button-danger" data-action="cancel-workout">Cancelar</button></div>`;
     }
     if (!state.routines.length) return `<div class="page-heading"><div><span class="eyebrow">ENTRENAMIENTO</span><h1>Tu próxima sesión</h1><p>Primero crea o genera una rutina para este perfil.</p></div></div><section class="empty-state"><div class="empty-symbol">◉</div><h3>Sin rutinas todavía</h3><p>Los planes son independientes para cada perfil.</p><div class="empty-actions"><button class="button button-primary" data-action="generate-routine">Generar rutina recomendada</button><button class="button button-outline" data-view="rutinas">Ver rutinas</button></div></section>`;
@@ -723,6 +724,7 @@
   }
   function renderSettings() {
     return `<div class="page-heading"><div><span class="eyebrow">DATOS EN TU DISPOSITIVO</span><h1>Ajustes y respaldos</h1><p>Exporta o recupera perfiles, rutinas, sesiones, medidas y fotografías.</p></div><span class="local-badge">Sin nube · Sin cuentas</span></div>
+      <section class="panel font-settings-panel"><div class="panel-heading"><div><span class="eyebrow">PERSONALIZACIÓN</span><h3>Color de la aplicación</h3><p>Elige el color principal que prefieras. Se guardará en este dispositivo.</p></div><span class="font-preview" aria-hidden="true">●</span></div><label class="font-size-control" for="app-color-select">Color de la aplicación<select id="app-color-select" aria-label="Color de la aplicación">${[['morado','Morado'],['verde','Verde'],['rosa','Rosa'],['vino','Vino'],['blanco','Blanco']].map(([value,label]) => `<option value="${value}" ${applyAppColor() === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><small class="font-settings-note">El cambio se aplica al instante y se conserva en este dispositivo.</small></section>
       <section class="panel font-settings-panel"><div class="panel-heading"><div><span class="eyebrow">PERSONALIZACIÓN</span><h3>Tamaño de letra</h3><p>Elige el tamaño que te resulte más cómodo para leer la aplicación.</p></div><span class="font-preview" aria-hidden="true">Aa</span></div><label class="font-size-control" for="font-size-select">Tamaño de fuente<select id="font-size-select" aria-label="Tamaño de fuente"><option value="small" ${applyFontSize() === 'small' ? 'selected' : ''}>Chica</option><option value="medium" ${applyFontSize() === 'medium' ? 'selected' : ''}>Mediana</option><option value="large" ${applyFontSize() === 'large' ? 'selected' : ''}>Grande</option></select></label><small class="font-settings-note">El cambio se aplica al instante y se conserva en este dispositivo.</small></section>
       <section class="panel backup-panel"><div class="backup-icon">⇅</div><div class="backup-copy"><h3>Respaldo completo</h3><p>Descarga un archivo JSON con todos los perfiles y su información, incluidas las fotografías. Guárdalo en un lugar privado para poder transferirlo a otro dispositivo.</p><button class="button button-primary" data-action="export-backup">Descargar respaldo completo</button><small>La restauración reemplaza todos los datos locales actuales de este navegador.</small></div></section>
       <section class="panel backup-panel"><div class="backup-icon">↥</div><div class="backup-copy"><h3>Restaurar un respaldo</h3><p>Selecciona un archivo JSON creado por PANCHO GYM 2.0. Se validará antes de reemplazar el contenido actual.</p><label class="button button-outline file-button">Seleccionar archivo JSON<input id="backup-file" type="file" accept="application/json,.json"></label><small>Antes de importar, descarga una copia del estado actual para poder recuperarlo.</small></div></section>
@@ -933,6 +935,11 @@
         notify('¡Foto de perfil guardada!');
         await render(); return;
       }
+      if (target.id === 'app-color-select') {
+        const color = applyAppColor(target.value);
+        localStorage.setItem(APP_COLOR_KEY, color);
+        notify(`Color de la aplicación: ${color}.`);
+      }
       if (target.id === 'font-size-select') {
         const size = applyFontSize(target.value);
         localStorage.setItem(FONT_SIZE_KEY, size);
@@ -1037,6 +1044,14 @@
     }
   });
 
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && state.activeSession?.status === 'active') {
+      GymDB.put('sessions', state.activeSession).catch(error => console.warn('No se pudo guardar la sesión al ocultar la app:', error));
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    if (state.activeSession?.status === 'active') GymDB.put('sessions', state.activeSession).catch(() => {});
+  });
   window.addEventListener('online', updateChrome);
   window.addEventListener('offline', updateChrome);
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); state.installPrompt = event; if (state.view === 'ajustes') render(); });
