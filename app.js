@@ -1105,11 +1105,22 @@
   async function registerPWA() {
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
     try {
-      const registration = await navigator.serviceWorker.register('./service-worker.js');
+      const registration = await navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' });
+      // Comprueba si hay una versión nueva cada vez que se abre la app.
+      await registration.update().catch(() => {});
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         worker?.addEventListener('statechange', () => {
-          if (worker.state === 'installed' && navigator.serviceWorker.controller) notify('Hay una actualización lista. Recarga para usar la versión nueva.', 'info');
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Activa la versión nueva sin pedirle al usuario que busque el botón de recarga.
+            worker.postMessage('SKIP_WAITING');
+          }
         });
       });
     } catch (error) { console.warn('Service Worker no disponible:', error); }
