@@ -858,16 +858,35 @@
         const payload = { format: 'pancho-gym-routine', version: 1, routine: { name: routine.name, goal: routine.goal || '', location: routine.location || 'Gimnasio', days: (routine.days || []).map(day => ({ name: day.name || 'Día', exercises: (day.exercises || []).map(ex => ({ exerciseId: ex.exerciseId, sets: Number(ex.sets ?? ex.setCount) || 3, reps: Number(ex.reps) || 10, rest: Number(ex.rest) || 60, weight: Number(ex.weight) || 0, ...(ex.cardioRole ? { cardioRole: ex.cardioRole } : {}) })) })) } };
         const file = new File([JSON.stringify(payload, null, 2)], `rutina-${(routine.name || 'pancho-gym').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pgym.json`, { type: 'application/json' });
         const shareText = `Te comparto la rutina “${routine.name}”. Abre PANCHO GYM 2.0, entra a Rutinas y toca “Importar rutina” para guardarla en tu perfil.`;
+        const downloadRoutineFile = () => {
+          const url = URL.createObjectURL(file), link = document.createElement('a');
+          link.href = url; link.download = file.name; link.style.display = 'none';
+          document.body.appendChild(link); link.click(); link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+        };
         try {
           if (navigator.share && navigator.canShare?.({ files: [file] })) {
             await navigator.share({ files: [file], title: `Rutina: ${routine.name}`, text: shareText });
+            notify('¡Rutina lista para compartir!');
           } else {
-            const url = URL.createObjectURL(file), link = document.createElement('a');
-            link.href = url; link.download = file.name; link.click(); URL.revokeObjectURL(url);
-            notify('Archivo de rutina descargado. Adjunta ese archivo en WhatsApp.', 'info');
+            downloadRoutineFile();
+            notify('Rutina descargada. Adjunta el archivo .pgym.json en WhatsApp.', 'info');
           }
         } catch (error) {
-          if (error?.name !== 'AbortError') throw error;
+          if (error?.name === 'AbortError') break;
+          // Algunos navegadores Android/PWA rechazan Web Share con "Permission denied".
+          // En ese caso se ofrece el archivo descargable en lugar de cancelar la acción.
+          try {
+            downloadRoutineFile();
+            notify('Android bloqueó el envío directo. La rutina se descargó; adjunta el archivo .pgym.json en WhatsApp.', 'info');
+          } catch (downloadError) {
+            try {
+              await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+              notify('No se pudo compartir el archivo. Copié los datos de la rutina; pégalos en un mensaje para recuperarlos.', 'info');
+            } catch {
+              notify('No se pudo compartir automáticamente. Abre Pancho Gym en Chrome y vuelve a intentarlo.', 'error');
+            }
+          }
         }
         break;
       }
