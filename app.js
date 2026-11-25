@@ -531,6 +531,7 @@
     if (state.editRoutine) return renderRoutineEditor();
     return `<div class="page-heading"><div><span class="eyebrow">PLANIFICACIÓN</span><h1>Mis rutinas</h1><p>Planes adaptables a tu objetivo y al equipo que tienes disponible.</p></div><div class="heading-actions"><button class="button button-outline" data-action="generate-routine">✦ Generar recomendada</button><button class="button button-outline" data-action="create-muscle-split">✦ Generar rutina inteligente</button><button class="button button-primary" data-action="new-routine">＋ Crear rutina</button></div></div>
       <div class="routine-guidance"><span>✦</span><div><strong>Generador inteligente de 3 días</strong><p>Crea una combinación distinta de 6 a 8 ejercicios según tu objetivo y experiencia: pecho + brazo, espalda + hombro y tren inferior + abdomen. Incluye 20 minutos de cardio inicial y 10 al final.</p></div></div>
+      <div class="routine-import-bar"><button class="button button-outline" data-action="import-routine-file">＋ Importar rutina recibida</button><input id="routine-import-input" type="file" accept=".json,application/json" hidden></div>
       ${state.routines.length ? `<section class="routine-grid">${state.routines.map(routineCard).join('')}</section>` : `<section class="empty-state"><div class="empty-symbol">▤</div><h3>Tu primer plan empieza aquí</h3><p>Crea una rutina para este perfil. Los planes no se comparten con otros perfiles.</p><div class="empty-actions"><button class="button button-primary" data-action="generate-routine">✦ Generar rutina recomendada</button><button class="button button-outline" data-action="new-routine">Crear desde cero</button></div></section>`}
       <section class="panel exercise-library"><div class="panel-heading"><div><span class="eyebrow">BIBLIOTECA</span><h3>Ejercicios disponibles</h3></div><span class="chip">${Object.keys(EXERCISES).length} ejercicios</span></div><div class="library-grid">${renderExerciseLibrary()}</div></section>`;
   }
@@ -854,26 +855,23 @@
       case 'share-routine': {
         const routine = state.routines.find(item => item.id === id);
         if (!routine) return notify('No se encontró la rutina.', 'error');
-        const lines = [`💪 PANCHO GYM — ${routine.name}`, routine.goal ? `Objetivo: ${routine.goal}` : '', ''];
-        (routine.days || []).forEach((day, dayIndex) => {
-          lines.push(`📅 ${day.name || `Día ${dayIndex + 1}`}`);
-          (day.exercises || []).forEach((exercise, index) => {
-            const info = EXERCISES[exercise.exerciseId] || EXERCISES.squat;
-            const sets = exercise.sets ?? exercise.setCount ?? '—';
-            const reps = exercise.reps ?? '—';
-            lines.push(`${index + 1}. ${info.name} — ${sets} series × ${reps} repeticiones${exercise.weight ? ` · ${exercise.weight} kg` : ''}`);
-          });
-          lines.push('');
-        });
-        lines.push('Compartida desde PANCHO GYM 2.0');
-        const message = lines.filter((line, index) => line || (index && lines[index - 1])).join('\\n');
-        const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
-        if (navigator.share) {
-          try { await navigator.share({ title: `Rutina: ${routine.name}`, text: message }); }
-          catch (error) { if (error?.name !== 'AbortError') location.href = whatsappUrl; }
-        } else location.href = whatsappUrl;
+        const payload = { format: 'pancho-gym-routine', version: 1, routine: { name: routine.name, goal: routine.goal || '', location: routine.location || 'Gimnasio', days: (routine.days || []).map(day => ({ name: day.name || 'Día', exercises: (day.exercises || []).map(ex => ({ exerciseId: ex.exerciseId, sets: Number(ex.sets ?? ex.setCount) || 3, reps: Number(ex.reps) || 10, rest: Number(ex.rest) || 60, weight: Number(ex.weight) || 0, ...(ex.cardioRole ? { cardioRole: ex.cardioRole } : {}) })) })) } };
+        const file = new File([JSON.stringify(payload, null, 2)], `rutina-${(routine.name || 'pancho-gym').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pgym.json`, { type: 'application/json' });
+        const shareText = `Te comparto la rutina “${routine.name}”. Abre PANCHO GYM 2.0, entra a Rutinas y toca “Importar rutina” para guardarla en tu perfil.`;
+        try {
+          if (navigator.share && navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: `Rutina: ${routine.name}`, text: shareText });
+          } else {
+            const url = URL.createObjectURL(file), link = document.createElement('a');
+            link.href = url; link.download = file.name; link.click(); URL.revokeObjectURL(url);
+            notify('Archivo de rutina descargado. Adjunta ese archivo en WhatsApp.', 'info');
+          }
+        } catch (error) {
+          if (error?.name !== 'AbortError') throw error;
+        }
         break;
       }
+      case 'import-routine-file': $('#routine-import-input')?.click(); break;
       case 'start-routine': state.view = 'entrenar'; state.selectedRoutineId = id; await render(); break;
       case 'edit-selected-routine': { const routine = state.routines.find(r => r.id === state.selectedRoutineId) || state.routines[0]; if (!routine) return notify('No se encontró la rutina seleccionada.', 'error'); state.editRoutine = structuredClone(routine); state.editDayIndex = 0; state.view = 'rutinas'; await render(); break; }
       case 'start-selected-workout': {
@@ -917,6 +915,32 @@
   document.addEventListener('change', async event => {
     const target = event.target;
     try {
+      if (target.id === 'routine-import-input' && target.files?.[0]) {
+        const file = target.files[0];
+        try {
+          const parsed = JSON.parse(await file.text());
+          const source = parsed?.format === 'pancho-gym-routine' ? parsed.routine : null;
+          if (!source || !Array.isArray(source.days) || !source.days.length || source.days.length > 14) throw new Error('El archivo no contiene una rutina válida de PANCHO GYM.');
+          const days = source.days.map((day, index) => ({
+            id: uid('day'), name: String(day.name || `Día ${index + 1}`).slice(0, 50),
+            exercises: (Array.isArray(day.exercises) ? day.exercises : []).slice(0, 40).map(ex => ({
+              exerciseId: Object.prototype.hasOwnProperty.call(EXERCISES, ex.exerciseId) ? ex.exerciseId : 'squat',
+              sets: Math.max(1, Math.min(50, Number(ex.sets) || 3)),
+              reps: Math.max(1, Math.min(300, Number(ex.reps) || 10)),
+              rest: Math.max(0, Math.min(600, Number(ex.rest) || 60)),
+              weight: Math.max(0, Math.min(500, Number(ex.weight) || 0)),
+              ...(ex.cardioRole === 'cardio-start' || ex.cardioRole === 'cardio-end' ? { cardioRole: ex.cardioRole } : {})
+            }))
+          }));
+          if (!days.some(day => day.exercises.length)) throw new Error('La rutina no contiene ejercicios.');
+          const imported = { id: uid('routine'), profileId: state.profileId, name: String(source.name || 'Rutina importada').slice(0, 60), goal: String(source.goal || 'Plan compartido').slice(0, 100), location: ['Gimnasio','Casa','Mixto'].includes(source.location) ? source.location : 'Gimnasio', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), days };
+          await GymDB.put('routines', imported);
+          target.value = '';
+          notify('¡Rutina importada y guardada en este perfil!');
+          await render();
+        } catch (error) { target.value = ''; throw error; }
+        return;
+      }
       if (target.id === 'profile-photo-input' && target.files?.[0]) {
         const file = target.files[0];
         const imageExtension = /\.(jpe?g|png|gif|webp|bmp|svg|avif|heic|heif|tif|tiff|ico)$/i.test(file.name || '');
