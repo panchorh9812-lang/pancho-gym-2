@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración de Press de hombros">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20282b"/><stop offset="1" stop-color="#111719"/></linearGradient></defs>
-<rect width="220" height="190" rx="18" fill="url(#bg)"/><path d="M18 168 H202" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
-<g fill="none" stroke="#d5e0da" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="105" cy="45" r="11"/><path d="M105 57 L105 111 M105 70 L72 45 L60 23 M105 70 L138 45 L150 23 M91 111 L84 151 M119 111 L126 151 M49 20 L61 14 L68 26 L56 32 Z M143 26 L150 14 L162 20 L155 32 Z"/></g>
-<path d="M18 18 H55" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="184" fill="#a9ef38" font-size="9" font-family="Arial,sans-serif" letter-spacing="1.4">HOMBROS</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración anatómica de PRESS DE HOMBROS">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b2d"/><stop offset="1" stop-color="#111819"/></linearGradient><linearGradient id="muscle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8b7d"/><stop offset="1" stop-color="#d93636"/></linearGradient></defs>
+<rect width="220" height="190" rx="18" fill="url(#bg)"/><circle cx="110" cy="94" r="69" fill="none" stroke="#344344" stroke-width="1" stroke-dasharray="3 6"/><path d="M17 169H203" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
+<path d='M59 28H78M139 28H158' stroke='#dbe4df' stroke-width='7'/><path d='M69 20V36M148 20V36' stroke='#a9ef38' stroke-width='5'/>
+<g fill="none" stroke="#d8e2dd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="12" fill="#d8e2dd" stroke="none"/><path d="M91 62 Q108 67 125 62 L130 111 L87 111 Z M94 108 L91 147 L79 153 M122 108 L128 147 L140 153 M91 76 L72 59 L69 31 M124 76 L144 59 L148 31"/></g>
+<g fill="url(#muscle)" stroke="#ffb0a4" stroke-width="1.2"><ellipse cx='79' cy='75' rx='10' ry='10'/><ellipse cx='137' cy='75' rx='10' ry='10'/></g>
+<path d="M18 18H54" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="181" fill="#a9ef38" font-size="8.3" font-family="Arial,sans-serif" font-weight="700" letter-spacing=".8">PRESS DE HOMBROS</text><text x="202" y="18" text-anchor="end" fill="#d5e0da" font-size="6.7" font-family="Arial,sans-serif">DELTOIDES · TRÍCEPS</text></svg>
