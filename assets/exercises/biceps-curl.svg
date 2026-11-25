@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración de Curl de bíceps">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20282b"/><stop offset="1" stop-color="#111719"/></linearGradient></defs>
-<rect width="220" height="190" rx="18" fill="url(#bg)"/><path d="M18 168 H202" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
-<g fill="none" stroke="#d5e0da" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="11"/><path d="M108 55 L108 111 M108 70 L77 86 L70 119 M108 70 L137 86 L144 119 M94 111 L86 151 M122 111 L130 151 M59 115 H79 M64 108 V122 M74 108 V122 M135 115 H155 M140 108 V122 M150 108 V122"/></g>
-<path d="M18 18 H55" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="184" fill="#a9ef38" font-size="9" font-family="Arial,sans-serif" letter-spacing="1.4">BÍCEPS</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración anatómica de CURL DE BÍCEPS">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b2d"/><stop offset="1" stop-color="#111819"/></linearGradient><linearGradient id="muscle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8b7d"/><stop offset="1" stop-color="#d93636"/></linearGradient></defs>
+<rect width="220" height="190" rx="18" fill="url(#bg)"/><circle cx="110" cy="94" r="69" fill="none" stroke="#344344" stroke-width="1" stroke-dasharray="3 6"/><path d="M17 169H203" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
+<path d='M75 115H91M70 109V121M96 109V121M124 115H140M119 109V121M145 109V121' stroke='#dbe4df' stroke-width='5'/>
+<g fill="none" stroke="#d8e2dd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="12" fill="#d8e2dd" stroke="none"/><path d="M91 62 Q108 67 125 62 L129 109 L87 109 Z M94 106 L90 146 L78 153 M122 106 L128 146 L140 153 M91 75 L70 91 L78 117 L91 103 M124 75 L145 91 L137 117 L124 103"/></g>
+<g fill="url(#muscle)" stroke="#ffb0a4" stroke-width="1.2"><ellipse cx='76' cy='101' rx='7' ry='14'/><ellipse cx='139' cy='101' rx='7' ry='14'/></g>
+<path d="M18 18H54" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="181" fill="#a9ef38" font-size="8.3" font-family="Arial,sans-serif" font-weight="700" letter-spacing=".8">CURL DE BÍCEPS</text><text x="202" y="18" text-anchor="end" fill="#d5e0da" font-size="6.7" font-family="Arial,sans-serif">BÍCEPS BRAQUIAL</text></svg>
