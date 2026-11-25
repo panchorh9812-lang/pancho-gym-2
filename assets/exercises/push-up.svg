@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración de Flexión de brazos">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20282b"/><stop offset="1" stop-color="#111719"/></linearGradient></defs>
-<rect width="220" height="190" rx="18" fill="url(#bg)"/><path d="M18 168 H202" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
-<g fill="none" stroke="#d5e0da" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="79" cy="79" r="11"/><path d="M89 85 L120 104 L154 105 M108 98 L88 121 L63 137 M121 104 L139 127 L160 137 M60 137 H170 M55 144 H176"/></g>
-<path d="M18 18 H55" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="184" fill="#a9ef38" font-size="9" font-family="Arial,sans-serif" letter-spacing="1.4">PECHO Y TRÍCEPS</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración anatómica de FLEXIÓN DE BRAZOS">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b2d"/><stop offset="1" stop-color="#111819"/></linearGradient><linearGradient id="muscle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8b7d"/><stop offset="1" stop-color="#d93636"/></linearGradient></defs>
+<rect width="220" height="190" rx="18" fill="url(#bg)"/><circle cx="110" cy="94" r="69" fill="none" stroke="#344344" stroke-width="1" stroke-dasharray="3 6"/><path d="M17 169H203" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
+
+<g fill="none" stroke="#d8e2dd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="12" fill="#d8e2dd" stroke="none"/><path d="M49 101 Q70 84 91 88 L133 98 L162 125 L178 132 L173 141 L151 137 L126 115 L91 108 L69 121 L40 131 L31 124 Z M75 93 L60 76 L49 84 M103 91 L119 76 L128 83"/></g>
+<g fill="url(#muscle)" stroke="#ffb0a4" stroke-width="1.2"><ellipse cx='94' cy='99' rx='18' ry='9'/><ellipse cx='62' cy='91' rx='8' ry='12'/></g>
+<path d="M18 18H54" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="181" fill="#a9ef38" font-size="8.3" font-family="Arial,sans-serif" font-weight="700" letter-spacing=".8">FLEXIÓN DE BRAZOS</text><text x="202" y="18" text-anchor="end" fill="#d5e0da" font-size="6.7" font-family="Arial,sans-serif">PECTORAL · TRÍCEPS</text></svg>
