@@ -70,7 +70,7 @@
   const state = {
     view: 'inicio', profileId: localStorage.getItem('pg-active-profile') || 'profile-me',
     profile: null, profiles: [], routines: [], sessions: [], measurements: [], photos: [],
-    editRoutine: null, editDayIndex: 0, showProfileCreate: false,
+    editRoutine: null, editDayIndex: 0, showProfileCreate: false, smartGeneratorOpen: false,
     activeSession: null, paused: false, timerRemaining: 0, timerInterval: null,
     cardioTimer: { exIndex: null, remaining: 0, running: false }, cardioTimerInterval: null, exerciseTimerInterval: null,
     detailExercise: null, photoCompare: [], photoUrls: [],
@@ -244,60 +244,94 @@
       <button type="button" class="button button-outline add-exercise-button" data-action="add-exercise">＋ Añadir ejercicio</button>
       <div class="form-actions"><button class="button button-primary" type="submit">Guardar rutina</button><button class="button button-quiet" type="button" data-action="close-routine-editor">Cancelar</button>${routine.id ? `<button class="text-button danger-text" type="button" data-action="delete-routine" data-id="${esc(routine.id)}">Eliminar rutina</button>` : ''}</div></form>`;
   }
-  function buildMuscleSplitRoutine() {
+  function buildMuscleSplitRoutine(options = {}) {
     const now = new Date().toISOString();
     const profile = state.profile || {};
-    const experience = profile.experience || 'Principiante';
-    const goal = profile.goal || 'Perder grasa y conservar músculo';
+    const experience = options.experience || profile.experience || 'Principiante';
+    const goal = options.goal || profile.goal || 'Perder grasa y conservar músculo';
+    const locationType = options.location || 'Gimnasio';
+    const equipment = new Set(options.equipment?.length ? options.equipment : ['machines', 'freeweights', 'bodyweight', 'bands']);
+    const targetCount = Math.max(6, Math.min(8, Number(options.exerciseCount) || 6));
+    const includeCardio = options.cardio !== false;
     const sets = experience === 'Avanzado' ? 4 : experience === 'Intermedio' ? 3 : 2;
-    const repsForGoal = /fuerza/i.test(goal) ? 8 : /hipertrofia|masa muscular/i.test(goal) ? 10 : 12;
-    const rest = /fuerza/i.test(goal) ? 120 : 75;
+    const strengthGoal = /fuerza/i.test(goal);
+    const hypertrophyGoal = /masa muscular|hipertrofia|ganar músculo/i.test(goal);
+    const reps = strengthGoal ? 6 : hypertrophyGoal ? 10 : 12;
+    const rest = strengthGoal ? 120 : hypertrophyGoal ? 90 : 60;
+    const preferredText = String(options.preferred || '').toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const preferred = preferredText.split(',').map(x => x.trim()).filter(Boolean);
     const recentIds = new Set((state.sessions || []).filter(session => session.status === 'completed').slice(0, 2).flatMap(session => (session.exercises || []).filter(ex => !ex.cardioRole).map(ex => ex.exerciseId)));
-    const all = Object.entries(EXERCISES).filter(([, ex]) => ex.category !== 'Cardio' && ex.category !== 'Movilidad' && ex.category !== 'Recuperación');
+    const equipmentFor = (id, ex) => {
+      const label = (id + ' ' + ex.name + ' ' + ex.muscle + ' ' + (ex.librarySection || '')).toLocaleLowerCase('es');
+      if (/banda|bandas|el[aá]stic/.test(label)) return 'bands';
+      if (/polea|m[aá]quina|prensa|extensi[oó]n de piernas|curl femoral|pec deck|multipower|jal[oó]n al pecho/.test(label)) return 'machines';
+      if (/barra|barbell|mancuerna|press de banca|peso muerto|remo con barra|curl martillo|goblet/.test(label)) return 'freeweights';
+      return 'bodyweight';
+    };
+    const all = Object.entries(EXERCISES).filter(([id, ex]) =>
+      ex.category !== 'Cardio' && ex.category !== 'Movilidad' && ex.category !== 'Recuperación' &&
+      equipment.has(equipmentFor(id, ex))
+    );
     const matches = pattern => all.filter(([id, ex]) => pattern.test([id, ex.name, ex.muscle, ex.librarySection || ''].join(' ')));
     const shuffle = list => [...list].sort(() => Math.random() - 0.5);
     const choose = (pool, count, used) => {
+      const matchesPreferred = pool.filter(([id, ex]) => preferred.some(term => {
+        const haystack = (id + ' ' + ex.name).toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return haystack.includes(term);
+      }));
       const fresh = shuffle(pool.filter(([id]) => !used.has(id) && !recentIds.has(id)));
       const fallback = shuffle(pool.filter(([id]) => !used.has(id)));
-      const chosen = [...fresh, ...fallback].slice(0, count);
-      chosen.forEach(([id]) => used.add(id));
-      return chosen;
+      const ordered = [...matchesPreferred, ...fresh, ...fallback];
+      const selected = [];
+      for (const item of ordered) {
+        if (!used.has(item[0]) && !selected.some(row => row[0] === item[0])) selected.push(item);
+        if (selected.length >= count) break;
+      }
+      selected.forEach(([id]) => used.add(id));
+      return selected;
     };
+    const splitCounts = targetCount === 6 ? [3, 3] : targetCount === 7 ? [4, 3] : [4, 4];
     const makeDay = (name, groups) => {
       const used = new Set();
-      const selected = groups.flatMap(([pattern, count]) => choose(matches(pattern), count, used));
-      // Completa hasta ocho movimientos con ejercicios distintos del mismo enfoque muscular.
+      let selected = groups.flatMap(([pattern, count]) => choose(matches(pattern), count, used));
       const combined = groups.flatMap(([pattern]) => matches(pattern));
-      if (selected.length < 6) selected.push(...choose(combined, 6 - selected.length, used));
-      const exercises = selected.slice(0, 8).map(([exerciseId]) => ({
-        exerciseId, sets, reps: repsForGoal, rest, weight: 0
-      }));
-      return {
-        id: uid('day'), name,
-        exercises: [
-          { exerciseId: 'treadmill', sets: 1, reps: 20, rest: 0, weight: 0, cardioRole: 'cardio-start' },
-          ...exercises,
-          { exerciseId: 'treadmill', sets: 1, reps: 10, rest: 0, weight: 0, cardioRole: 'cardio-end' }
-        ]
-      };
+      if (selected.length < targetCount) selected.push(...choose(combined, targetCount - selected.length, used));
+      // Si el equipo elegido limita una categoría, completa con movimientos de los grupos del día.
+      if (selected.length < targetCount) {
+        const fallback = Object.entries(EXERCISES).filter(([id, ex]) =>
+          !used.has(id) && ex.category === 'Fuerza' && groups.some(([pattern]) => pattern.test([id, ex.name, ex.muscle, ex.librarySection || ''].join(' ')))
+        );
+        selected.push(...choose(fallback, targetCount - selected.length, used));
+      }
+      const exercises = selected.slice(0, targetCount).map(([exerciseId]) => ({ exerciseId, sets, reps, rest, weight: 0 }));
+      const cardio = includeCardio ? [
+        { exerciseId: 'treadmill', sets: 1, reps: 20, rest: 0, weight: 0, cardioRole: 'cardio-start' },
+        { exerciseId: 'treadmill', sets: 1, reps: 10, rest: 0, weight: 0, cardioRole: 'cardio-end' }
+      ] : [];
+      return { id: uid('day'), name, exercises: includeCardio ? [cardio[0], ...exercises, cardio[1]] : exercises };
     };
+    const daysAvailable = (options.availability || profile.availability || []).filter(Boolean);
+    const dayName = index => daysAvailable[index] || `Día ${index + 1}`;
     const days = [
-      makeDay('Día 1 · Pecho + brazo', [
-        [/pecho|pectoral/i, 3], [/bíceps|biceps|tríceps|triceps|braquial|antebrazo/i, 3]
+      makeDay(`${dayName(0)} · Pecho + brazo`, [
+        [/pecho|pectoral|apertura|chest/i, splitCounts[0]],
+        [/bíceps|biceps|tríceps|triceps|braquial|antebrazo/i, splitCounts[1]]
       ]),
-      makeDay('Día 2 · Espalda + hombro', [
-        [/espalda|dorsal|trapecio/i, 3], [/hombro|deltoide|manguito/i, 3]
+      makeDay(`${dayName(1)} · Espalda + hombro`, [
+        [/espalda|dorsal|trapecio|remo|jal[oó]n/i, splitCounts[0]],
+        [/hombro|deltoide|manguito|elevaci[oó]n lateral|face pull/i, splitCounts[1]]
       ]),
-      makeDay('Día 3 · Tren inferior + abdomen', [
-        [/cuádr|cuadr|femoral|isqui|glúte|aductor|abductor|pantorrilla|tibial|pierna/i, 4],
-        [/abdomen|oblicuo|transverso|core/i, 2]
+      makeDay(`${dayName(2)} · Tren inferior + abdomen`, [
+        [/cu[aá]dr|femoral|isqui|gl[uú]te|aductor|abductor|pantorrilla|tibial|pierna/i, 4],
+        [/abdomen|oblicuo|transverso|core|abdominal|plancha/i, targetCount - 4]
       ])
     ];
     return {
       id: uid('routine'), profileId: state.profileId,
-      name: 'Rutina inteligente · 3 días',
-      goal, location: 'Gimnasio', createdAt: now, updatedAt: now,
-      cardioRequired: true, generator: 'pancho-smart-v1', days
+      name: 'Rutina inteligente · 3 días', goal, location: locationType,
+      createdAt: now, updatedAt: now, cardioRequired: includeCardio,
+      generator: 'pancho-smart-v2', preferences: { experience, equipment: [...equipment], preferred, exerciseCount: targetCount },
+      days
     };
   }
 
@@ -527,10 +561,38 @@
     return order.filter(group => groups[group]?.length).map(group => '<section class="exercise-library-group"><div class="library-group-heading"><h4>' + group + '</h4><span>' + groups[group].length + ' ejercicios</span></div><div class="library-grid">' + groups[group].map(([id, ex]) => '<button class="library-item" data-action="exercise-detail" data-id="' + id + '"><img src="assets/exercises/' + ex.image + '" alt="Ilustración de ' + esc(ex.name) + '"><span><strong>' + esc(ex.name) + '</strong><small>' + esc(ex.muscle) + '</small></span><b>ⓘ</b></button>').join('') + '</div></section>').join('');
   }
 
+  function renderSmartGenerator() {
+    if (!state.smartGeneratorOpen) return '';
+    const profile = state.profile || {};
+    const available = Array.isArray(profile.availability) ? profile.availability : [];
+    const defaultDays = available.length ? available : ['Lunes', 'Miércoles', 'Viernes'];
+    const defaultGoal = profile.goal || 'Perder grasa y conservar músculo';
+    const defaultExperience = profile.experience || 'Principiante';
+    return `<form class="panel smart-generator" id="smart-generator-form">
+      <div class="panel-heading"><div><span class="eyebrow">ENTRENADOR INTELIGENTE</span><h3>Personaliza tu rutina</h3><p>Se crearán tus tres días habituales, con 6 a 8 ejercicios por sesión.</p></div><button class="mini-edit" type="button" data-action="close-smart-generator" aria-label="Cerrar">×</button></div>
+      <div class="smart-form-grid">
+        <label>Objetivo<select name="goal">${['Perder grasa y conservar músculo','Mejorar condición física','Ganar fuerza','Ganar masa muscular','Mejorar movilidad','Mantenerme activo'].map(x => `<option ${defaultGoal === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+        <label>Nivel<select name="experience">${['Principiante','Intermedio','Avanzado'].map(x => `<option ${defaultExperience === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+        <label>¿Dónde entrenas?<select name="location"><option>Gimnasio</option><option>Casa</option><option>Mixto</option></select></label>
+        <label>Ejercicios por día<select name="exerciseCount"><option value="6">6 ejercicios</option><option value="7">7 ejercicios</option><option value="8">8 ejercicios</option></select></label>
+      </div>
+      <fieldset class="smart-fieldset"><legend>Equipo disponible</legend><div class="smart-check-grid">
+        <label><input type="checkbox" name="equipment" value="machines" checked><span>Máquinas y poleas</span></label>
+        <label><input type="checkbox" name="equipment" value="freeweights" checked><span>Mancuernas y barras</span></label>
+        <label><input type="checkbox" name="equipment" value="bodyweight" checked><span>Peso corporal</span></label>
+        <label><input type="checkbox" name="equipment" value="bands"><span>Bandas elásticas</span></label>
+      </div></fieldset>
+      <fieldset class="smart-fieldset"><legend>Días disponibles</legend><div class="smart-check-grid smart-days">${DAYS.map(day => `<label><input type="checkbox" name="availability" value="${day}" ${defaultDays.includes(day) ? 'checked' : ''}><span>${day}</span></label>`).join('')}</div></fieldset>
+      <label class="smart-preferred">Ejercicios favoritos (opcional)<input name="preferred" maxlength="180" placeholder="Ej. Press de banca, curl de bíceps, sentadilla"><small>Escribe nombres separados por comas. Se priorizarán cuando correspondan al día muscular.</small></label>
+      <label class="smart-cardio"><input type="checkbox" name="cardio" value="yes" checked><span>Incluir 20 min de cardio inicial y 10 min al final</span></label>
+      <div class="form-actions"><button class="button button-primary" type="submit">✦ Crear mi rutina inteligente</button><button class="button button-quiet" type="button" data-action="close-smart-generator">Cancelar</button></div>
+    </form>`;
+  }
   function renderRoutines() {
     if (state.editRoutine) return renderRoutineEditor();
     return `<div class="page-heading"><div><span class="eyebrow">PLANIFICACIÓN</span><h1>Mis rutinas</h1><p>Planes adaptables a tu objetivo y al equipo que tienes disponible.</p></div><div class="heading-actions"><button class="button button-outline" data-action="generate-routine">✦ Generar recomendada</button><button class="button button-outline" data-action="create-muscle-split">✦ Generar rutina inteligente</button><button class="button button-primary" data-action="new-routine">＋ Crear rutina</button></div></div>
-      <div class="routine-guidance"><span>✦</span><div><strong>Generador inteligente de 3 días</strong><p>Crea una combinación distinta de 6 a 8 ejercicios según tu objetivo y experiencia: pecho + brazo, espalda + hombro y tren inferior + abdomen. Incluye 20 minutos de cardio inicial y 10 al final.</p></div></div>
+      <div class="routine-guidance"><span>✦</span><div><strong>Generador inteligente de 3 días</strong><p>Personaliza objetivo, nivel, disponibilidad, equipo y ejercicios favoritos para tus días de pecho + brazo, espalda + hombro y tren inferior + abdomen.</p></div></div>
+      ${renderSmartGenerator()}
       <div class="routine-import-bar"><button class="button button-outline" data-action="import-routine-file">＋ Importar rutina recibida</button><input id="routine-import-input" type="file" accept=".json,application/json" hidden></div>
       ${state.routines.length ? `<section class="routine-grid">${state.routines.map(routineCard).join('')}</section>` : `<section class="empty-state"><div class="empty-symbol">▤</div><h3>Tu primer plan empieza aquí</h3><p>Crea una rutina para este perfil. Los planes no se comparten con otros perfiles.</p><div class="empty-actions"><button class="button button-primary" data-action="generate-routine">✦ Generar rutina recomendada</button><button class="button button-outline" data-action="new-routine">Crear desde cero</button></div></section>`}
       <section class="panel exercise-library"><div class="panel-heading"><div><span class="eyebrow">BIBLIOTECA</span><h3>Ejercicios disponibles</h3></div><span class="chip">${Object.keys(EXERCISES).length} ejercicios</span></div><div class="library-grid">${renderExerciseLibrary()}</div></section>`;
@@ -842,7 +904,8 @@
       case 'new-profile': state.showProfileCreate = true; state.view = 'perfil'; await render(); break;
       case 'close-profile-create': state.showProfileCreate = false; await render(); break;
       case 'edit-profile': state.view = 'perfil'; await render(); break;
-      case 'create-muscle-split': { const routine = buildMuscleSplitRoutine(); await GymDB.put('routines', routine); state.selectedRoutineId = routine.id; notify('¡Rutina inteligente creada! Se eligieron ejercicios según tu objetivo y experiencia.'); await render(); break; }
+      case 'create-muscle-split': state.smartGeneratorOpen = true; state.view = 'rutinas'; await render(); break;
+      case 'close-smart-generator': state.smartGeneratorOpen = false; await render(); break;
       case 'generate-routine': { const recommended = buildRecommendedRoutine(state.profile); await GymDB.put('routines', recommended); state.selectedRoutineId = recommended.id; notify(`Rutina recomendada creada para ${state.profile.name}. Ajusta las cargas a tu nivel.`); await render(); break; }
       case 'new-routine': state.editRoutine = { id: null, profileId: state.profileId, name: 'Mi nueva rutina', goal: state.profile.goal, location: 'Gimnasio', createdAt: new Date().toISOString(), days: [{ id: uid('day'), name: 'Día 1 · Cuerpo completo', exercises: [{ exerciseId: 'squat', sets: 3, reps: 10, rest: 60, weight: 0 }] }] }; state.editDayIndex = 0; await render(); break;
       case 'edit-routine': state.editRoutine = structuredClone(state.routines.find(r => r.id === id)); state.editDayIndex = 0; await render(); break;
@@ -855,37 +918,43 @@
       case 'share-routine': {
         const routine = state.routines.find(item => item.id === id);
         if (!routine) return notify('No se encontró la rutina.', 'error');
-        const payload = { format: 'pancho-gym-routine', version: 1, routine: { name: routine.name, goal: routine.goal || '', location: routine.location || 'Gimnasio', days: (routine.days || []).map(day => ({ name: day.name || 'Día', exercises: (day.exercises || []).map(ex => ({ exerciseId: ex.exerciseId, sets: Number(ex.sets ?? ex.setCount) || 3, reps: Number(ex.reps) || 10, rest: Number(ex.rest) || 60, weight: Number(ex.weight) || 0, ...(ex.cardioRole ? { cardioRole: ex.cardioRole } : {}) })) })) } };
-        const file = new File([JSON.stringify(payload, null, 2)], `rutina-${(routine.name || 'pancho-gym').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pgym.json`, { type: 'application/json' });
-        const shareText = `Te comparto la rutina “${routine.name}”. Abre PANCHO GYM 2.0, entra a Rutinas y toca “Importar rutina” para guardarla en tu perfil.`;
-        const downloadRoutineFile = () => {
-          const url = URL.createObjectURL(file), link = document.createElement('a');
-          link.href = url; link.download = file.name; link.style.display = 'none';
-          document.body.appendChild(link); link.click(); link.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 30000);
+        const payload = {
+          format: 'pancho-gym-routine', version: 1,
+          routine: {
+            name: routine.name, goal: routine.goal || '', location: routine.location || 'Gimnasio',
+            days: (routine.days || []).map(day => ({
+              name: day.name || 'Día',
+              exercises: (day.exercises || []).map(ex => ({
+                exerciseId: ex.exerciseId, sets: Number(ex.sets ?? ex.setCount) || 3,
+                reps: Number(ex.reps) || 10, rest: Number(ex.rest) || 60,
+                weight: Number(ex.weight) || 0,
+                ...(ex.cardioRole ? { cardioRole: ex.cardioRole } : {})
+              }))
+            }))
+          }
         };
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+        const shareUrl = new URL(location.href);
+        shareUrl.hash = 'importRoutine=' + encoded;
+        const message = `¡Te comparto mi rutina “${routine.name}” de PANCHO GYM! Abre este enlace y guárdala en tu perfil: ${shareUrl.href}`;
         try {
-          if (navigator.share && navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], title: `Rutina: ${routine.name}`, text: shareText });
-            notify('¡Rutina lista para compartir!');
+          if (navigator.share) {
+            await navigator.share({ title: `Rutina: ${routine.name}`, text: message, url: shareUrl.href });
+            notify('Enlace de rutina compartido. La otra persona podrá importarlo como una copia.');
+          } else if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(message);
+            notify('Enlace copiado. Pégalo en WhatsApp para compartir la rutina.');
           } else {
-            downloadRoutineFile();
-            notify('Rutina descargada. Adjunta el archivo .pgym.json en WhatsApp.', 'info');
+            location.href = 'https://wa.me/?text=' + encodeURIComponent(message);
           }
         } catch (error) {
           if (error?.name === 'AbortError') break;
-          // Algunos navegadores Android/PWA rechazan Web Share con "Permission denied".
-          // En ese caso se ofrece el archivo descargable en lugar de cancelar la acción.
           try {
-            downloadRoutineFile();
-            notify('Android bloqueó el envío directo. La rutina se descargó; adjunta el archivo .pgym.json en WhatsApp.', 'info');
-          } catch (downloadError) {
-            try {
-              await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-              notify('No se pudo compartir el archivo. Copié los datos de la rutina; pégalos en un mensaje para recuperarlos.', 'info');
-            } catch {
-              notify('No se pudo compartir automáticamente. Abre Pancho Gym en Chrome y vuelve a intentarlo.', 'error');
-            }
+            await navigator.clipboard.writeText(message);
+            notify('El menú de compartir no estuvo disponible. Copié el enlace para que lo pegues en WhatsApp.', 'info');
+          } catch {
+            location.href = 'https://wa.me/?text=' + encodeURIComponent(message);
           }
         }
         break;
@@ -1085,6 +1154,30 @@
         if (updated.weight && updated.weight !== previousWeight) await GymDB.put('measurements', { id: uid('measure'), profileId: state.profileId, date: today(), weight: updated.weight, source: 'profile' });
         notify('Perfil actualizado correctamente.'); await render();
       }
+      if (form.id === 'smart-generator-form') {
+        const fd = new FormData(form);
+        const options = {
+          goal: String(fd.get('goal') || state.profile.goal),
+          experience: String(fd.get('experience') || state.profile.experience),
+          location: String(fd.get('location') || 'Gimnasio'),
+          exerciseCount: Number(fd.get('exerciseCount')) || 6,
+          equipment: fd.getAll('equipment'),
+          availability: fd.getAll('availability'),
+          preferred: String(fd.get('preferred') || ''),
+          cardio: fd.get('cardio') === 'yes'
+        };
+        if (!options.availability.length) return notify('Selecciona al menos un día disponible.', 'error');
+        if (!options.equipment.length) return notify('Selecciona al menos un tipo de equipo.', 'error');
+        const routine = buildMuscleSplitRoutine(options);
+        if (routine.days.some(day => day.exercises.filter(ex => !ex.cardioRole).length < 6)) {
+          notify('Algunos ejercicios se adaptaron a la biblioteca disponible para el equipo elegido.', 'info');
+        }
+        await GymDB.put('routines', routine);
+        state.selectedRoutineId = routine.id;
+        state.smartGeneratorOpen = false;
+        notify('¡Rutina inteligente personalizada y guardada!');
+        await render();
+      }
       if (form.id === 'routine-editor-form') {
         captureRoutineEditor(); const r = state.editRoutine;
         if (!r.name.trim()) return notify('Escribe un nombre para la rutina.', 'error');
@@ -1144,13 +1237,54 @@
       });
     } catch (error) { console.warn('Service Worker no disponible:', error); }
   }
+  async function importSharedRoutineLink() {
+    const hash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
+    const params = new URLSearchParams(hash);
+    const encoded = params.get('importRoutine');
+    if (!encoded) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    try {
+      const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(escape(atob(normalized)));
+      const parsed = JSON.parse(json);
+      const source = parsed?.format === 'pancho-gym-routine' && parsed.version === 1 ? parsed.routine : null;
+      if (!source || !Array.isArray(source.days) || !source.days.length || source.days.length > 14) throw new Error('El enlace no contiene una rutina válida de PANCHO GYM.');
+      const days = source.days.map((day, index) => ({
+        id: uid('day'), name: String(day.name || `Día ${index + 1}`).slice(0, 50),
+        exercises: (Array.isArray(day.exercises) ? day.exercises : []).slice(0, 40).map(ex => ({
+          exerciseId: Object.prototype.hasOwnProperty.call(EXERCISES, ex.exerciseId) ? ex.exerciseId : 'squat',
+          sets: Math.max(1, Math.min(50, Number(ex.sets) || 3)),
+          reps: Math.max(1, Math.min(300, Number(ex.reps) || 10)),
+          rest: Math.max(0, Math.min(600, Number(ex.rest) || 60)),
+          weight: Math.max(0, Math.min(500, Number(ex.weight) || 0)),
+          ...(ex.cardioRole === 'cardio-start' || ex.cardioRole === 'cardio-end' ? { cardioRole: ex.cardioRole } : {})
+        }))
+      }));
+      if (!days.some(day => day.exercises.length)) throw new Error('La rutina compartida no contiene ejercicios.');
+      if (!confirm(`Recibiste la rutina “${String(source.name || 'Rutina compartida').slice(0, 60)}”. Se guardará como una copia independiente en el perfil ${state.profile?.name || 'activo'}. ¿Quieres importarla?`)) return;
+      const imported = {
+        id: uid('routine'), profileId: state.profileId,
+        name: String(source.name || 'Rutina compartida').slice(0, 60),
+        goal: String(source.goal || 'Plan compartido').slice(0, 100),
+        location: ['Gimnasio','Casa','Mixto'].includes(source.location) ? source.location : 'Gimnasio',
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), days
+      };
+      await GymDB.put('routines', imported);
+      state.selectedRoutineId = imported.id;
+      state.view = 'rutinas';
+      await render();
+      notify('¡Rutina importada! Ya está guardada como una copia independiente.');
+    } catch (error) {
+      notify(error.message || 'No se pudo importar la rutina del enlace.', 'error');
+    }
+  }
   async function init() {
     try {
       await GymDB.open();
       await GymDB.seed();
       if (!(await GymDB.get('profiles', state.profileId))) state.profileId = (await GymDB.getAll('profiles'))[0]?.id;
       try { await navigator.storage?.persist?.(); } catch (_) { /* Optional browser quota hint. */ }
-      await registerPWA(); await render();
+      await registerPWA(); await render(); await importSharedRoutineLink();
       if (navigator.storage?.estimate) {
         const estimate = await navigator.storage.estimate();
         console.info('Almacenamiento del navegador:', estimate);
