@@ -692,8 +692,7 @@
           return `<div class="history-exercise"><div><strong>${esc(ex.cardioRole === 'cardio-start' ? 'Cardio inicial' : 'Cardio final')} · ${esc(name)}</strong><small>${minutes} min programados · ${done ? 'Realizado ✓' : 'No completado'}</small></div></div>`;
         }
         const sets = (ex.sets || []).map((set, i) => `<span class="history-set">${i + 1}: ${Number(set.reps) || 0} reps · ${Number(set.weight) || 0} kg ${set.done ? '✓' : ''}</span>`).join('');
-        const elapsed = Number(ex.timerElapsedSeconds) || 0;
-        return `<div class="history-exercise"><div><strong>${index}. ${esc(name)}</strong><small>${ex.sets?.length || 0} series · ${elapsed ? 'Tiempo: ' + formatCountdown(elapsed) : 'Tiempo no registrado'}</small></div><div class="history-sets">${sets || '<span class="history-set">Sin series registradas</span>'}</div></div>`;
+        return `<div class="history-exercise"><div><strong>${index}. ${esc(name)}</strong><small>${ex.sets?.length || 0} series</small></div><div class="history-sets">${sets || '<span class="history-set">Sin series registradas</span>'}</div></div>`;
       }).join('');
       return `<article class="history-entry"><div class="history-row"><span class="history-check">✓</span><div><strong>${esc(s.routineName || 'Entrenamiento')}</strong><small>${fmtDate(s.endedAt || s.startedAt)} · ${esc(s.dayName || 'Sesión')}</small></div><span>${Math.max(1, Math.round((s.durationSeconds || 0) / 60))} min</span></div><details class="history-details" open><summary>Rutina realizada · ver ejercicios (${(s.exercises || []).length})</summary><div class="history-exercise-list">${exerciseDetails || '<p class="muted small-copy">Esta sesión no contiene ejercicios guardados.</p>'}</div></details></article>`;
     }).join('') || '<div class="empty-inline"><span>◷</span><div><strong>Aún no hay entrenamientos</strong><p>Las sesiones completadas aparecerán aquí.</p></div></div>';
