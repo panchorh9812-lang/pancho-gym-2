@@ -287,3 +287,25 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .smart-cardio{margin:14px 0}
 .smart-generator .form-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
 @media(max-width:520px){.smart-form-grid{grid-template-columns:1fr}.smart-check-grid{grid-template-columns:1fr 1fr}.smart-days{grid-template-columns:repeat(2,minmax(0,1fr))}.smart-generator{padding:14px}}
+
+
+/* v33 · Biblioteca de ejercicios: búsqueda, filtros y fichas de técnica */
+.exercise-library-tools{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(190px,1fr);gap:12px;margin:16px 0 8px;align-items:end}
+.exercise-search{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 13px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);color:var(--muted)}
+.exercise-search>span{font-size:23px;line-height:1}
+.exercise-search input{width:100%;min-width:0;min-height:44px;border:0!important;outline:0;background:transparent;color:var(--text);font-size:14px!important}
+.exercise-search input:focus{box-shadow:none}
+.exercise-filter{display:grid;gap:5px;color:var(--muted);font-size:10px;font-weight:700}
+.exercise-filter select{width:100%;min-height:48px;padding:9px 12px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);color:var(--text);font-size:14px}
+.exercise-results{grid-column:1/-1;margin:0;color:var(--muted);font-size:11px}
+.exercise-library-group[hidden],.library-item[hidden]{display:none!important}
+.exercise-library-empty{padding:22px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:13px}
+.exercise-detail-expanded .exercise-muscle-tags{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0;padding:12px;border:1px solid color-mix(in srgb,var(--lime) 24%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--lime) 7%,var(--surface))}
+.exercise-muscle-tags span{color:var(--muted);font-size:11px}
+.exercise-muscle-tags strong{font-size:12px;color:var(--text)}
+.exercise-detail-intro{font-size:14px;line-height:1.65}
+.exercise-detail-expanded .detail-section{margin-top:13px}
+.exercise-detail-expanded .detail-section strong{font-size:10px;letter-spacing:.08em}
+.exercise-detail-expanded .detail-section p{font-size:13px;line-height:1.65}
+.exercise-detail-tip{margin-top:16px;padding:12px;border-radius:12px;background:var(--surface-2);color:var(--muted);font-size:11px;line-height:1.6}
+@media(max-width:520px){.exercise-library-tools{grid-template-columns:1fr;gap:9px}.exercise-results{grid-column:auto}.exercise-search{min-height:50px}.exercise-detail-expanded{max-height:92dvh;overflow-y:auto}}
