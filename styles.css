@@ -87,3 +87,13 @@ html[data-font-size="small"] .app-shell{zoom:.94}
 html[data-font-size="medium"] .app-shell{zoom:1}
 html[data-font-size="large"] .app-shell{zoom:1.08}
 @media(max-width:720px){html[data-font-size="small"] .app-shell{zoom:.94}html[data-font-size="medium"] .app-shell{zoom:1}html[data-font-size="large"] .app-shell{zoom:1.06}}
+
+
+/* Colores de aplicación seleccionables desde Ajustes */
+html[data-app-color="verde"]{--lime:#22c55e;--lime-dark:#15803d}
+html[data-app-color="rosa"]{--lime:#ec4899;--lime-dark:#be185d}
+html[data-app-color="vino"]{--lime:#8b1e3f;--lime-dark:#64152e}
+html[data-app-color="blanco"]{--lime:#f8fafc;--lime-dark:#d1d5db}
+html[data-app-color="blanco"] .brand-mark,html[data-app-color="blanco"] .button-primary,html[data-app-color="blanco"] .nav-item.active,html[data-app-color="blanco"] .set-check input:checked+span{color:#111719}
+html[data-app-color="blanco"] .button-primary:hover{background:#e5e7eb}
+html[data-app-color="blanco"] .set-check input:checked+span:after{color:#111719}
