@@ -261,3 +261,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 @media(prefers-reduced-motion:reduce){
   .metric-card,.routine-card,.button,.nav-item{transition:none}
 }
+
+
+/* v30: refinamiento visual y mejor respuesta táctil */
+.routine-card,.metric-card,.panel,.button,.nav-item{transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.routine-card{box-shadow:0 8px 24px rgba(0,0,0,.10)}
+.routine-card:hover{border-color:color-mix(in srgb,var(--lime) 42%,var(--line));box-shadow:0 12px 30px rgba(0,0,0,.18);transform:translateY(-2px)}
+.button:active,.nav-item:active{transform:scale(.98)}
+:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
