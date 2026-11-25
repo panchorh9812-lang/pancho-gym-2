@@ -264,9 +264,10 @@
     const equipmentFor = (id, ex) => {
       const label = (id + ' ' + ex.name + ' ' + ex.muscle + ' ' + (ex.librarySection || '')).toLocaleLowerCase('es');
       if (/banda|bandas|el[aá]stic/.test(label)) return 'bands';
-      if (/polea|m[aá]quina|prensa|extensi[oó]n de piernas|curl femoral|pec deck|multipower|jal[oó]n al pecho/.test(label)) return 'machines';
-      if (/barra|barbell|mancuerna|press de banca|peso muerto|remo con barra|curl martillo|goblet/.test(label)) return 'freeweights';
-      return 'bodyweight';
+      if (/polea|m[aá]quina|prensa|extensi[oó]n de piernas|curl femoral|pec deck|multipower|jal[oó]n|remo sentado|face pull|pullover en polea|leg press|leg extension|leg curl/.test(label)) return 'machines';
+      if (/barra|barbell|mancuerna|press de banca|peso muerto|remo con barra|curl|elevaci[oó]n lateral|press inclinado|goblet|hip thrust|sentadilla con barra/.test(label)) return 'freeweights';
+      if (/plancha|flexi[oó]n|crunch|abdominal|bird dog|dead bug|sentadilla|zancada|puente|burpee|escalador|fondos|dominada|mountain climber/.test(label)) return 'bodyweight';
+      return 'freeweights';
     };
     const all = Object.entries(EXERCISES).filter(([id, ex]) =>
       ex.category !== 'Cardio' && ex.category !== 'Movilidad' && ex.category !== 'Recuperación' &&
@@ -296,13 +297,6 @@
       let selected = groups.flatMap(([pattern, count]) => choose(matches(pattern), count, used));
       const combined = groups.flatMap(([pattern]) => matches(pattern));
       if (selected.length < targetCount) selected.push(...choose(combined, targetCount - selected.length, used));
-      // Si el equipo elegido limita una categoría, completa con movimientos de los grupos del día.
-      if (selected.length < targetCount) {
-        const fallback = Object.entries(EXERCISES).filter(([id, ex]) =>
-          !used.has(id) && ex.category === 'Fuerza' && groups.some(([pattern]) => pattern.test([id, ex.name, ex.muscle, ex.librarySection || ''].join(' ')))
-        );
-        selected.push(...choose(fallback, targetCount - selected.length, used));
-      }
       const exercises = selected.slice(0, targetCount).map(([exerciseId]) => ({ exerciseId, sets, reps, rest, weight: 0 }));
       const cardio = includeCardio ? [
         { exerciseId: 'treadmill', sets: 1, reps: 20, rest: 0, weight: 0, cardioRole: 'cardio-start' },
@@ -940,22 +934,15 @@
         const message = `¡Te comparto mi rutina “${routine.name}” de PANCHO GYM! Abre este enlace y guárdala en tu perfil: ${shareUrl.href}`;
         try {
           if (navigator.share) {
-            await navigator.share({ title: `Rutina: ${routine.name}`, text: message, url: shareUrl.href });
+            await navigator.share({ title: `Rutina: ${routine.name}`, text: `Te comparto la rutina “${routine.name}” de PANCHO GYM.`, url: shareUrl.href });
             notify('Enlace de rutina compartido. La otra persona podrá importarlo como una copia.');
-          } else if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(message);
-            notify('Enlace copiado. Pégalo en WhatsApp para compartir la rutina.');
           } else {
             location.href = 'https://wa.me/?text=' + encodeURIComponent(message);
           }
         } catch (error) {
           if (error?.name === 'AbortError') break;
-          try {
-            await navigator.clipboard.writeText(message);
-            notify('El menú de compartir no estuvo disponible. Copié el enlace para que lo pegues en WhatsApp.', 'info');
-          } catch {
-            location.href = 'https://wa.me/?text=' + encodeURIComponent(message);
-          }
+          // Evita el permiso de compartir archivos: WhatsApp recibe únicamente el enlace importable.
+          location.href = 'https://wa.me/?text=' + encodeURIComponent(message);
         }
         break;
       }
@@ -1170,7 +1157,7 @@
         if (!options.equipment.length) return notify('Selecciona al menos un tipo de equipo.', 'error');
         const routine = buildMuscleSplitRoutine(options);
         if (routine.days.some(day => day.exercises.filter(ex => !ex.cardioRole).length < 6)) {
-          notify('Algunos ejercicios se adaptaron a la biblioteca disponible para el equipo elegido.', 'info');
+          return notify('Con el equipo seleccionado no hay suficientes ejercicios para todos los días. Selecciona otro tipo de equipo e inténtalo de nuevo.', 'error');
         }
         await GymDB.put('routines', routine);
         state.selectedRoutineId = routine.id;
@@ -1245,7 +1232,10 @@
     history.replaceState(null, '', location.pathname + location.search);
     try {
       const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
-      const json = decodeURIComponent(escape(atob(normalized)));
+      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+      const binary = atob(padded);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      const json = new TextDecoder().decode(bytes);
       const parsed = JSON.parse(json);
       const source = parsed?.format === 'pancho-gym-routine' && parsed.version === 1 ? parsed.routine : null;
       if (!source || !Array.isArray(source.days) || !source.days.length || source.days.length > 14) throw new Error('El enlace no contiene una rutina válida de PANCHO GYM.');
