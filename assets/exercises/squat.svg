@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración de Sentadilla">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20282b"/><stop offset="1" stop-color="#111719"/></linearGradient></defs>
-<rect width="220" height="190" rx="18" fill="url(#bg)"/><path d="M18 168 H202" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
-<g fill="none" stroke="#d5e0da" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="103" cy="47" r="12"/><path d="M103 60 L103 103 L82 125 L65 150 M103 103 L128 121 L148 150 M103 75 L74 91 L60 83 M103 75 L130 89 L147 80"/><path d="M51 56 H156 M56 51 V61 M151 51 V61"/></g>
-<path d="M18 18 H55" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="184" fill="#a9ef38" font-size="9" font-family="Arial,sans-serif" letter-spacing="1.4">PIERNAS Y GLÚTEOS</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración anatómica de SENTADILLA">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b2d"/><stop offset="1" stop-color="#111819"/></linearGradient><linearGradient id="muscle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8b7d"/><stop offset="1" stop-color="#d93636"/></linearGradient></defs>
+<rect width="220" height="190" rx="18" fill="url(#bg)"/><circle cx="110" cy="94" r="69" fill="none" stroke="#344344" stroke-width="1" stroke-dasharray="3 6"/><path d="M17 169H203" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
+<path d='M48 49H160' stroke='#c7d3d0' stroke-width='5'/><path d='M52 42V56M156 42V56' stroke='#f4f6f2' stroke-width='7'/>
+<g fill="none" stroke="#d8e2dd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="12" fill="#d8e2dd" stroke="none"/><path d="M88 64 Q105 70 122 64 L127 95 L111 109 L91 100 Z M91 99 L68 117 L54 151 M111 106 L139 119 L157 151 M94 75 L69 91 L55 81 M117 75 L139 91 L153 80"/></g>
+<g fill="url(#muscle)" stroke="#ffb0a4" stroke-width="1.2"><ellipse cx='80' cy='121' rx='9' ry='18'/><ellipse cx='137' cy='124' rx='9' ry='18'/></g>
+<path d="M18 18H54" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="181" fill="#a9ef38" font-size="8.3" font-family="Arial,sans-serif" font-weight="700" letter-spacing=".8">SENTADILLA</text><text x="202" y="18" text-anchor="end" fill="#d5e0da" font-size="6.7" font-family="Arial,sans-serif">CUÁDRICEPS · GLÚTEOS</text></svg>
