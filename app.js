@@ -625,7 +625,6 @@
   function renderTraining() {
     const session = state.activeSession && state.activeSession.profileId === state.profileId && state.activeSession.status === 'active' ? state.activeSession : null;
     if (session) {
-      ensureExerciseTimer();
       const { pct, done, total } = workoutProgress(session);
       const pausedBanner = state.paused ? '<div class="paused-banner">Entrenamiento pausado. Pulsa Reanudar cuando estés listo.</div>' : '';
         const exercises = session.exercises.map((ex, exIndex) => {
