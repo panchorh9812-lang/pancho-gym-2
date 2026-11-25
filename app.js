@@ -223,7 +223,7 @@
   }
   function routineCard(r) {
     const exerciseCount = (r.days || []).reduce((total, day) => total + (day.exercises || []).length, 0);
-    return `<article class="routine-card"><div class="routine-card-top"><span class="routine-mark">▤</span><span class="chip">${esc(r.location || 'Gimnasio')}</span></div><h3>${esc(r.name)}</h3><p>${esc(r.goal || 'Plan personal')}</p><div class="routine-meta"><span>▦ ${(r.days || []).length} días</span><span>◉ ${exerciseCount} ejercicios</span></div><div class="routine-actions"><button class="button button-outline" data-action="edit-routine" data-id="${esc(r.id)}">Editar</button><button class="button button-primary" data-action="start-routine" data-id="${esc(r.id)}">Entrenar →</button></div></article>`;
+    return `<article class="routine-card"><div class="routine-card-top"><span class="routine-mark">▤</span><span class="chip">${esc(r.location || 'Gimnasio')}</span></div><h3>${esc(r.name)}</h3><p>${esc(r.goal || 'Plan personal')}</p><div class="routine-meta"><span>▦ ${(r.days || []).length} días</span><span>◉ ${exerciseCount} ejercicios</span></div><div class="routine-actions"><button class="button button-outline" data-action="edit-routine" data-id="${esc(r.id)}">Editar</button><button class="button button-outline" data-action="share-routine" data-id="${esc(r.id)}">Compartir</button><button class="button button-primary" data-action="start-routine" data-id="${esc(r.id)}">Entrenar →</button></div></article>`;
   }
   function exerciseRow(ex, index) {
     const details = EXERCISES[ex.exerciseId] || EXERCISES.squat;
@@ -851,6 +851,29 @@
       case 'add-routine-day': captureRoutineEditor(); state.editRoutine.days.push({ id: uid('day'), name: `Día ${state.editRoutine.days.length + 1}`, exercises: [] }); state.editDayIndex = state.editRoutine.days.length - 1; await render(); break;
       case 'select-edit-day': captureRoutineEditor(); state.editDayIndex = Number(element.dataset.index); await render(); break;
       case 'delete-routine': if (confirm('¿Eliminar esta rutina? El historial de entrenamientos realizados se conservará.')) { await GymDB.remove('routines', id); state.editRoutine = null; notify('Rutina eliminada.'); await render(); } break;
+      case 'share-routine': {
+        const routine = state.routines.find(item => item.id === id);
+        if (!routine) return notify('No se encontró la rutina.', 'error');
+        const lines = [`💪 PANCHO GYM — ${routine.name}`, routine.goal ? `Objetivo: ${routine.goal}` : '', ''];
+        (routine.days || []).forEach((day, dayIndex) => {
+          lines.push(`📅 ${day.name || `Día ${dayIndex + 1}`}`);
+          (day.exercises || []).forEach((exercise, index) => {
+            const info = EXERCISES[exercise.exerciseId] || EXERCISES.squat;
+            const sets = exercise.sets ?? exercise.setCount ?? '—';
+            const reps = exercise.reps ?? '—';
+            lines.push(`${index + 1}. ${info.name} — ${sets} series × ${reps} repeticiones${exercise.weight ? ` · ${exercise.weight} kg` : ''}`);
+          });
+          lines.push('');
+        });
+        lines.push('Compartida desde PANCHO GYM 2.0');
+        const message = lines.filter((line, index) => line || (index && lines[index - 1])).join('\\n');
+        const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
+        if (navigator.share) {
+          try { await navigator.share({ title: `Rutina: ${routine.name}`, text: message }); }
+          catch (error) { if (error?.name !== 'AbortError') location.href = whatsappUrl; }
+        } else location.href = whatsappUrl;
+        break;
+      }
       case 'start-routine': state.view = 'entrenar'; state.selectedRoutineId = id; await render(); break;
       case 'edit-selected-routine': { const routine = state.routines.find(r => r.id === state.selectedRoutineId) || state.routines[0]; if (!routine) return notify('No se encontró la rutina seleccionada.', 'error'); state.editRoutine = structuredClone(routine); state.editDayIndex = 0; state.view = 'rutinas'; await render(); break; }
       case 'start-selected-workout': {
