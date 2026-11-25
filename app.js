@@ -552,7 +552,9 @@
     const groups = {};
     Object.entries(EXERCISES).forEach(([id, ex]) => { const group = muscleGroup(ex); (groups[group] ||= []).push([id, ex]); });
     const order = ['Cuádriceps','Isquiotibiales (femorales)','Glúteos','Aductores','Abductores','Pantorrillas','Tibial anterior','Pecho','Pectoral superior','Pectoral medio','Pectoral inferior','Ejercicios complementarios de pecho','Bíceps','Tríceps','Braquial y braquiorradial','Antebrazos','Espalda','Dorsales','Espalda media','Espalda baja (lumbar)','Trapecio','Hombros','Deltoide anterior','Deltoide lateral','Deltoide posterior','Manguito rotador y estabilidad','Abdomen','Recto abdominal','Oblicuos','Transverso abdominal y abdomen profundo','Estabilidad del core','Piernas y glúteos','Otros músculos','Movilidad y recuperación','Cardio'];
-    return order.filter(group => groups[group]?.length).map(group => '<section class="exercise-library-group"><div class="library-group-heading"><h4>' + group + '</h4><span>' + groups[group].length + ' ejercicios</span></div><div class="library-grid">' + groups[group].map(([id, ex]) => '<button class="library-item" data-action="exercise-detail" data-id="' + id + '"><img src="assets/exercises/' + ex.image + '" alt="Ilustración de ' + esc(ex.name) + '"><span><strong>' + esc(ex.name) + '</strong><small>' + esc(ex.muscle) + '</small></span><b>ⓘ</b></button>').join('') + '</div></section>').join('');
+    const names = [...new Set([...order.filter(group => groups[group]?.length), ...Object.keys(groups).filter(group => !order.includes(group))])];
+    const cards = names.map(group => '<section class="exercise-library-group" data-library-group="' + esc(group) + '"><div class="library-group-heading"><h4>' + esc(group) + '</h4><span data-group-count>' + groups[group].length + ' ejercicios</span></div><div class="library-grid">' + groups[group].map(([id, ex]) => '<button class="library-item" data-action="exercise-detail" data-id="' + esc(id) + '" data-library-item data-search="' + esc((id + ' ' + ex.name + ' ' + ex.muscle + ' ' + group + ' ' + ex.category).toLocaleLowerCase('es')) + '"><img src="assets/exercises/' + esc(ex.image) + '" alt="Ilustración de ' + esc(ex.name) + '" loading="lazy"><span><strong>' + esc(ex.name) + '</strong><small>' + esc(ex.muscle) + '</small></span><b>ⓘ</b></button>').join('') + '</div></section>').join('');
+    return '<div class="exercise-library-tools"><label class="exercise-search"><span>⌕</span><input id="exercise-library-search" type="search" placeholder="Buscar ejercicio o músculo…" autocomplete="off"></label><label class="exercise-filter"><span>Grupo muscular</span><select id="exercise-library-filter"><option value="">Todos los grupos</option>' + names.map(group => '<option value="' + esc(group) + '">' + esc(group) + '</option>').join('') + '</select></label><p class="exercise-results" id="exercise-library-results" aria-live="polite">' + Object.keys(EXERCISES).length + ' ejercicios disponibles</p></div><div id="exercise-library-results-list">' + cards + '</div><p class="exercise-library-empty" id="exercise-library-empty" hidden>No encontramos ejercicios con esa búsqueda. Prueba otro nombre o grupo muscular.</p>';
   }
 
   function renderSmartGenerator() {
@@ -788,7 +790,7 @@
   }
   function renderExerciseDetail(exerciseId) {
     const info = EXERCISES[exerciseId] || EXERCISES.squat;
-    return `<div class="detail-backdrop" data-action="close-exercise-detail"><article class="exercise-detail-card" data-detail-card><button class="detail-close" type="button" data-action="close-exercise-detail">×</button><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><span class="eyebrow">${esc(info.category)} · ${esc(info.muscle)}</span><h2>${esc(info.name)}</h2><p>${esc(info.instructions)}</p><div class="detail-section"><strong>POSICIÓN INICIAL</strong><p>${esc(info.start)}</p></div><div class="detail-section"><strong>EJECUCIÓN CORRECTA</strong><p>${esc(info.execution)}</p></div><div class="detail-section warning-detail"><strong>ERRORES FRECUENTES</strong><p>${esc(info.mistakes)}</p></div></article></div>`;
+    return `<div class="detail-backdrop" data-action="close-exercise-detail"><article class="exercise-detail-card exercise-detail-expanded" data-detail-card><button class="detail-close" type="button" data-action="close-exercise-detail" aria-label="Cerrar">×</button><img src="assets/exercises/${info.image}" alt="Ilustración de ${esc(info.name)}"><span class="eyebrow">${esc(info.category)} · GUÍA DEL EJERCICIO</span><h2>${esc(info.name)}</h2><div class="exercise-muscle-tags"><span>◉ Músculos trabajados</span><strong>${esc(info.muscle)}</strong></div><p class="exercise-detail-intro">${esc(info.instructions)}</p><div class="detail-section"><strong>1 · POSICIÓN INICIAL</strong><p>${esc(info.start)}</p></div><div class="detail-section"><strong>2 · EJECUCIÓN CORRECTA</strong><p>${esc(info.execution)}</p></div><div class="detail-section warning-detail"><strong>3 · ERRORES FRECUENTES</strong><p>${esc(info.mistakes)}</p></div><p class="exercise-detail-tip">Consejo: utiliza una carga que puedas controlar y realiza el movimiento sin dolor. Si no estás seguro de la técnica, pide orientación a un profesional.</p></article></div>`;
   }
   async function render() {
     await refreshData();
@@ -987,9 +989,36 @@
     }
   });
 
+  document.addEventListener('input', event => {
+    if (event.target.id !== 'exercise-library-search') return;
+    filterExerciseLibrary();
+  });
+  function filterExerciseLibrary() {
+    const search = ($('#exercise-library-search')?.value || '').trim().toLocaleLowerCase('es');
+    const group = $('#exercise-library-filter')?.value || '';
+    let visible = 0;
+    $('#exercise-library-results-list [data-library-group]').forEach(section => {
+      const groupMatches = !group || section.dataset.libraryGroup === group;
+      let inGroup = 0;
+      $('[data-library-item]', section).forEach(card => {
+        const matches = groupMatches && (!search || card.dataset.search.includes(search));
+        card.hidden = !matches;
+        if (matches) inGroup++;
+      });
+      section.hidden = inGroup === 0;
+      const count = $('[data-group-count]', section);
+      if (count) count.textContent = inGroup + (inGroup === 1 ? ' ejercicio' : ' ejercicios');
+      visible += inGroup;
+    });
+    const results = $('#exercise-library-results');
+    if (results) results.textContent = visible + (visible === 1 ? ' ejercicio encontrado' : ' ejercicios encontrados');
+    const empty = $('#exercise-library-empty');
+    if (empty) empty.hidden = visible > 0;
+  }
   document.addEventListener('change', async event => {
     const target = event.target;
     try {
+      if (target.id === 'exercise-library-filter') { filterExerciseLibrary(); return; }
       if (target.id === 'routine-import-input' && target.files?.[0]) {
         const file = target.files[0];
         try {
