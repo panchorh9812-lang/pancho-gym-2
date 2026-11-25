@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración de Remo con mancuerna">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20282b"/><stop offset="1" stop-color="#111719"/></linearGradient></defs>
-<rect width="220" height="190" rx="18" fill="url(#bg)"/><path d="M18 168 H202" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
-<g fill="none" stroke="#d5e0da" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="103" cy="43" r="11"/><path d="M98 55 L85 96 L119 109 L145 133 M85 96 L60 123 L48 148 M119 109 L118 145 M88 69 L60 84 L47 74 M88 69 L119 76 L137 61 M136 52 L147 58 L139 72 L128 66 Z"/></g>
-<path d="M18 18 H55" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="184" fill="#a9ef38" font-size="9" font-family="Arial,sans-serif" letter-spacing="1.4">ESPALDA</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración anatómica de REMO CON MANCUERNA">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b2d"/><stop offset="1" stop-color="#111819"/></linearGradient><linearGradient id="muscle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8b7d"/><stop offset="1" stop-color="#d93636"/></linearGradient></defs>
+<rect width="220" height="190" rx="18" fill="url(#bg)"/><circle cx="110" cy="94" r="69" fill="none" stroke="#344344" stroke-width="1" stroke-dasharray="3 6"/><path d="M17 169H203" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
+<path d='M43 112H92V120H43Z' fill='#647577'/><path d='M151 116V139M143 116H159M143 139H159' stroke='#dbe4df' stroke-width='5'/>
+<g fill="none" stroke="#d8e2dd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="12" fill="#d8e2dd" stroke="none"/><path d="M79 74 Q101 69 124 80 L135 105 L105 119 L80 104 Z M104 112 L81 135 L57 151 M127 104 L148 128 L166 148 M87 82 L68 104 L48 104 M119 83 L145 98 L154 113"/></g>
+<g fill="url(#muscle)" stroke="#ffb0a4" stroke-width="1.2"><path d='M88 81Q106 77 122 86L125 103L105 111L87 101Z'/></g>
+<path d="M18 18H54" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="181" fill="#a9ef38" font-size="8.3" font-family="Arial,sans-serif" font-weight="700" letter-spacing=".8">REMO CON MANCUERNA</text><text x="202" y="18" text-anchor="end" fill="#d5e0da" font-size="6.7" font-family="Arial,sans-serif">DORSALES · ROMBOIDES</text></svg>
