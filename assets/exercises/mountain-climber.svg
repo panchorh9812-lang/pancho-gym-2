@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración de Escalador">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20282b"/><stop offset="1" stop-color="#111719"/></linearGradient></defs>
-<rect width="220" height="190" rx="18" fill="url(#bg)"/><path d="M18 168 H202" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
-<g fill="none" stroke="#d5e0da" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="81" cy="59" r="10"/><path d="M91 64 L128 84 L154 111 M117 78 L90 102 L60 117 M151 108 L128 132 L105 146 M88 102 L108 120 L139 129 M45 150 H177"/></g>
-<path d="M18 18 H55" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="184" fill="#a9ef38" font-size="9" font-family="Arial,sans-serif" letter-spacing="1.4">CORE Y CARDIO</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración anatómica de ESCALADOR">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b2d"/><stop offset="1" stop-color="#111819"/></linearGradient><linearGradient id="muscle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8b7d"/><stop offset="1" stop-color="#d93636"/></linearGradient></defs>
+<rect width="220" height="190" rx="18" fill="url(#bg)"/><circle cx="110" cy="94" r="69" fill="none" stroke="#344344" stroke-width="1" stroke-dasharray="3 6"/><path d="M17 169H203" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
+
+<g fill="none" stroke="#d8e2dd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="12" fill="#d8e2dd" stroke="none"/><path d="M45 94 Q70 80 95 86 L130 98 L158 117 L178 120 L176 130 L151 129 L123 111 L91 104 L65 116 L43 130 L31 123 Z M70 92L57 76L47 82 M128 105L111 127L96 143 M112 108L139 121L157 145"/></g>
+<g fill="url(#muscle)" stroke="#ffb0a4" stroke-width="1.2"><ellipse cx='98' cy='98' rx='19' ry='8'/><ellipse cx='111' cy='127' rx='9' ry='12'/></g>
+<path d="M18 18H54" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="181" fill="#a9ef38" font-size="8.3" font-family="Arial,sans-serif" font-weight="700" letter-spacing=".8">ESCALADOR</text><text x="202" y="18" text-anchor="end" fill="#d5e0da" font-size="6.7" font-family="Arial,sans-serif">CORE · FLEXORES DE CADERA</text></svg>
