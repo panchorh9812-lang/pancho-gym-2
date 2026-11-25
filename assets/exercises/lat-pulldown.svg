@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración de Jalón al pecho">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20282b"/><stop offset="1" stop-color="#111719"/></linearGradient></defs>
-<rect width="220" height="190" rx="18" fill="url(#bg)"/><path d="M18 168 H202" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
-<g fill="none" stroke="#d5e0da" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="105" cy="71" r="11"/><path d="M105 83 L105 123 M105 92 L77 108 L65 130 M105 92 L133 108 L145 130 M88 123 L78 150 M122 123 L132 150 M62 35 V20 H148 V35 M105 20 V55 M87 54 Q105 68 123 54"/></g>
-<path d="M18 18 H55" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="184" fill="#a9ef38" font-size="9" font-family="Arial,sans-serif" letter-spacing="1.4">ESPALDA</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-label="Ilustración anatómica de JALÓN AL PECHO">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b2d"/><stop offset="1" stop-color="#111819"/></linearGradient><linearGradient id="muscle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8b7d"/><stop offset="1" stop-color="#d93636"/></linearGradient></defs>
+<rect width="220" height="190" rx="18" fill="url(#bg)"/><circle cx="110" cy="94" r="69" fill="none" stroke="#344344" stroke-width="1" stroke-dasharray="3 6"/><path d="M17 169H203" stroke="#3b494a" stroke-width="2" stroke-dasharray="4 6"/>
+<path d='M40 24V36H180V24M110 36V48' stroke='#c9d4d1' stroke-width='4' fill='none'/><path d='M68 48H152' stroke='#a9ef38' stroke-width='5'/>
+<g fill="none" stroke="#d8e2dd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><circle cx="108" cy="43" r="12" fill="#d8e2dd" stroke="none"/><path d="M89 65 Q108 59 126 66 L130 111 L88 111 Z M94 108 L91 144 L81 153 M123 108 L129 144 L139 153 M94 75 L72 88 L77 111 M122 75 L144 88 L139 111"/></g>
+<g fill="url(#muscle)" stroke="#ffb0a4" stroke-width="1.2"><path d='M94 76Q108 69 122 76L121 99Q108 108 95 99Z'/></g>
+<path d="M18 18H54" stroke="#a9ef38" stroke-width="4" stroke-linecap="round"/><text x="18" y="181" fill="#a9ef38" font-size="8.3" font-family="Arial,sans-serif" font-weight="700" letter-spacing=".8">JALÓN AL PECHO</text><text x="202" y="18" text-anchor="end" fill="#d5e0da" font-size="6.7" font-family="Arial,sans-serif">DORSALES · BÍCEPS</text></svg>
